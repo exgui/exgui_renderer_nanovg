@@ -128,7 +128,7 @@ impl<'a> Renderer<'a> {
                             PathOptions::default(),
                         );
                     },
-                    Shape::Group(ref _g) => (),
+                    Shape::Group(ref _g) => {},
                 }
                 for child in unit.childs.iter() {
                     Self::render_node(frame, child);
