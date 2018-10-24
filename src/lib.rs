@@ -92,14 +92,9 @@ impl<'a> Renderer<'a> {
                         frame.path(
                             |path| {
                                 path.rect((r.x, r.y), (r.width, r.height));
-
-                                let fill_color = if let Some(ref fill) = r.fill {
-                                    fill.color
-                                } else {
-                                    Color::White
+                                if let Some(fill) = r.fill {
+                                    path.fill(fill.color.as_nanovg_color(), Default::default());
                                 };
-                                path.fill(fill_color.as_nanovg_color(), Default::default());
-
                                 if let Some(stroke) = r.stroke {
                                     path.stroke(
                                         stroke.color.as_nanovg_color(),
@@ -117,14 +112,9 @@ impl<'a> Renderer<'a> {
                         frame.path(
                             |path| {
                                 path.circle((c.cx, c.cy), c.r);
-
-                                let fill_color = if let Some(ref fill) = c.fill {
-                                    fill.color
-                                } else {
-                                    Color::White
+                                if let Some(fill) = c.fill {
+                                    path.fill(fill.color.as_nanovg_color(), Default::default());
                                 };
-                                path.fill(fill_color.as_nanovg_color(), Default::default());
-
                                 if let Some(stroke) = c.stroke {
                                     path.stroke(
                                         stroke.color.as_nanovg_color(),
