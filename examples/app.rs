@@ -6,7 +6,7 @@ extern crate exgui_renderer_nanovg as renderer;
 
 use glutin::GlContext;
 use renderer::Renderer;
-use exgui::{ModelComponent, Viewable, Node, Color, Fill, Stroke};
+use exgui::{ModelComponent, Viewable, Node, Color, Stroke};
 
 struct Model;
 
@@ -21,12 +21,12 @@ impl ModelComponent for Model {
 
 impl Viewable<Model> for Model {
     fn view(&self) -> Node<Self> {
-        let rect_fill = Some(Fill { color: Color::Yellow, transparent: 0.0 });
+        let rect_fill = Some(Color::Yellow.into());
         egml! {
             <rect x = 40.0, y = 40.0, width = 50.0, height = 80.0, fill = rect_fill,
-                    stroke = Some(Stroke { color: Color::Red, width: 1.0, transparent: 0.0 }), >
+                    stroke = Some(Stroke { color: Color::Red, width: 2.0, transparent: 0.0 }), >
                 <group>
-                    <circle cx = 120.0, cy = 120.0, r = 40.0, />
+                    <circle cx = 120.0, cy = 120.0, r = 40.0, fill = Some(Color::White.into()), />
                 </group>
             </rect>
         }
