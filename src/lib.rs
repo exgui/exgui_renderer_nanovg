@@ -4,7 +4,7 @@ extern crate exgui;
 use std::collections::HashMap;
 use std::path::Path;
 use nanovg::{Context, ContextBuilder, Font, Frame, Color as NanovgColor, StrokeOptions, PathOptions};
-use exgui::{Node, ModelComponent, Shape, Color};
+use exgui::{Node, ModelComponent, Drawable, Shape, Color};
 
 pub trait AsNanovgColor {
     fn as_nanovg_color(&self) -> NanovgColor;
@@ -80,59 +80,59 @@ impl<'a> Renderer<'a> {
 
     pub fn render_handler<MC: ModelComponent>(node: &'a Node<MC>) -> impl FnOnce(Frame<'a>) {
         move |frame| {
-            Self::render_node(&frame, node);
+            Self::render_draw(&frame, node as &dyn Drawable);
         }
     }
 
-    fn render_node<MC: ModelComponent>(frame: &Frame<'a>, node: &Node<MC>) {
-        match node {
-            Node::Unit(ref unit) => {
-                match unit.shape {
-                    Shape::Rect(ref r) => {
-                        frame.path(
-                            |path| {
-                                path.rect((r.x, r.y), (r.width, r.height));
-                                if let Some(fill) = r.fill {
-                                    path.fill(fill.color.as_nanovg_color(), Default::default());
-                                };
-                                if let Some(stroke) = r.stroke {
-                                    path.stroke(
-                                        stroke.color.as_nanovg_color(),
-                                        StrokeOptions {
-                                            width: stroke.width,
-                                            ..Default::default()
-                                        }
-                                    );
-                                }
-                            },
-                            PathOptions::default(),
-                        );
-                    },
-                    Shape::Circle(ref c) => {
-                        frame.path(
-                            |path| {
-                                path.circle((c.cx, c.cy), c.r);
-                                if let Some(fill) = c.fill {
-                                    path.fill(fill.color.as_nanovg_color(), Default::default());
-                                };
-                                if let Some(stroke) = c.stroke {
-                                    path.stroke(
-                                        stroke.color.as_nanovg_color(),
-                                        StrokeOptions {
-                                            width: stroke.width,
-                                            ..Default::default()
-                                        }
-                                    );
-                                }
-                            },
-                            PathOptions::default(),
-                        );
-                    },
-                    Shape::Group(ref _g) => {},
-                }
-                for child in unit.childs.iter() {
-                    Self::render_node(frame, child);
-                }
+    fn render_draw(frame: &Frame<'a>, draw: &dyn Drawable) {
+        if let Some(shape) = draw.shape() {
+            match shape {
+                Shape::Rect(ref r) => {
+                    frame.path(
+                        |path| {
+                            path.rect((r.x, r.y), (r.width, r.height));
+                            if let Some(fill) = r.fill {
+                                path.fill(fill.color.as_nanovg_color(), Default::default());
+                            };
+                            if let Some(stroke) = r.stroke {
+                                path.stroke(
+                                    stroke.color.as_nanovg_color(),
+                                    StrokeOptions {
+                                        width: stroke.width,
+                                        ..Default::default()
+                                    }
+                                );
+                            }
+                        },
+                        PathOptions::default(),
+                    );
+                },
+                Shape::Circle(ref c) => {
+                    frame.path(
+                        |path| {
+                            path.circle((c.cx, c.cy), c.r);
+                            if let Some(fill) = c.fill {
+                                path.fill(fill.color.as_nanovg_color(), Default::default());
+                            };
+                            if let Some(stroke) = c.stroke {
+                                path.stroke(
+                                    stroke.color.as_nanovg_color(),
+                                    StrokeOptions {
+                                        width: stroke.width,
+                                        ..Default::default()
+                                    }
+                                );
+                            }
+                        },
+                        PathOptions::default(),
+                    );
+                },
+                Shape::Group(ref _g) => {},
+            }
+        }
+        if let Some(childs) = draw.childs() {
+            for child in childs {
+                Self::render_draw(frame, child);
             }
         }
     }

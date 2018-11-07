@@ -21,6 +21,12 @@ impl ModelComponent for SmileModel {
     type Message = Msg;
     type Properties = ();
 
+    fn create(_props: &<Self as ModelComponent>::Properties) -> Self {
+        SmileModel {
+            normal_face: true,
+        }
+    }
+
     fn update(&mut self, msg: <Self as ModelComponent>::Message) -> bool {
         match msg {
             Msg::ToggleFace => {
@@ -38,12 +44,14 @@ impl Viewable<SmileModel> for SmileModel {
             <group translate = Some((50.0, 50.0).into()), >
                 <rect x = 0.0, y = 0.0, width = 300.0, height = 300.0,
                         fill = None, stroke = Some((Color::Black, 2.0, 0.5).into()), >
-                    <group fill = Some((Color::Black, 0.6).into()), stroke = Some((Color::Black, 5.0).into()), >
+                    <group stroke = Some((Color::Black, 5.0).into()), >
                         <circle cx = 150.0, cy = 150.0, r = 100.0,
                             fill = Some(if self.normal_face { Color::Yellow } else { Color::Red }.into()),
                             onclick = |_| Msg::ToggleFace, />
-                        <circle cx = 110.0, cy = 130.0, r = 15.0, />
-                        <circle cx = 190.0, cy = 130.0, r = 15.0, />
+                        <group fill = Some(if self.normal_face { Color::Black } else { Color::White }.into()), >
+                            <circle cx = 110.0, cy = 130.0, r = 15.0, />
+                            <circle cx = 190.0, cy = 130.0, r = 15.0, />
+                        </group>
                     </group>
                 </rect>
             </group>
@@ -69,9 +77,7 @@ fn main() {
         gl::ClearColor(0.8, 0.8, 0.8, 1.0);
     }
 
-    let mut smile = SmileModel {
-        normal_face: true,
-    };
+    let mut smile = SmileModel::create(&());
     let mut smile_node = smile.view();
     smile_node.resolve(None);
 
@@ -104,15 +110,15 @@ fn main() {
                         mouse_controller.update_pos(x_pos, y_pos);
                     },
                     glutin::WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
-                        if mouse_controller.left_pressed(&mut smile, &smile_node) {
+                        if mouse_controller.left_pressed(&mut smile, &mut smile_node) {
                             smile_node = smile.view();
                             smile_node.resolve(None);
                         }
                     },
-                    _ => {}
+                    _ => (),
                 }
             }
-            _ => {}
+            _ => (),
         });
     }
 }
