@@ -6,7 +6,7 @@ extern crate exgui_renderer_nanovg as renderer;
 
 use glutin::{GlContext, ElementState, MouseButton};
 use renderer::Renderer;
-use exgui::{ModelComponent, Viewable, Node, Color, controller::MouseInput};
+use exgui::{ModelComponent, Viewable, Node, PathCommand::*, Color, Stroke, LineJoin, controller::MouseInput};
 
 struct SmileModel {
     normal_face: bool,
@@ -51,6 +51,8 @@ impl Viewable<SmileModel> for SmileModel {
                         <group fill = Some(if self.normal_face { Color::Black } else { Color::White }.into()), >
                             <circle cx = 110.0, cy = 130.0, r = 15.0, />
                             <circle cx = 190.0, cy = 130.0, r = 15.0, />
+                            <path cmd = vec![Move([100.0, 180.0]), BezCtrl([150.0, 230.0]), QuadBezTo([200.0, 180.0]), BezCtrl([150.0, 210.0]), QuadBezTo([100.0, 180.0])],
+                                stroke = Some(Stroke { width: 5.0, line_join: LineJoin::Round, ..Default::default() }), />
                         </group>
                     </group>
                 </rect>
