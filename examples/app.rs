@@ -14,6 +14,10 @@ impl ModelComponent for Model {
     type Message = ();
     type Properties = ();
 
+    fn create(_props: &<Self as ModelComponent>::Properties) -> Self {
+        Model
+    }
+
     fn update(&mut self, _msg: <Self as ModelComponent>::Message) -> bool {
         unimplemented!()
     }
