@@ -6,7 +6,7 @@ extern crate exgui_renderer_nanovg as renderer;
 
 use glutin::{GlContext, ElementState, MouseButton};
 use renderer::Renderer;
-use exgui::{ModelComponent, Viewable, Node, Color, controller::MouseInput};
+use exgui::{ModelComponent, Viewable, Node, Color, Stroke, LineJoin, PathCommand::*, controller::MouseInput};
 
 #[derive(Debug)]
 struct Smile {
@@ -49,8 +49,25 @@ impl Viewable<Smile> for Smile {
                 <group fill = Some(if self.normal_face { Color::Black } else { Color::White }.into()), >
                     <circle cx = 110.0, cy = 130.0, r = 15.0, />
                     <circle cx = 190.0, cy = 130.0, r = 15.0, />
+                    { self.view_mouth() }
                 </group>
             </group>
+        }
+    }
+}
+
+impl Smile {
+    fn view_mouth(&self) -> Node<Self> {
+        if self.normal_face {
+            egml! {
+                <path cmd = vec![Move([100.0, 180.0]), BezCtrl([150.0, 230.0]), QuadBezTo([200.0, 180.0]), BezCtrl([150.0, 210.0]), QuadBezTo([100.0, 180.0])],
+                        stroke = Some(Stroke { width: 5.0, line_join: LineJoin::Round, ..Default::default() }), />
+            }
+        } else {
+            egml! {
+                <path cmd = vec![Move([100.0, 205.0]), BezCtrl([150.0, 155.0]), QuadBezTo([200.0, 205.0]), BezCtrl([150.0, 175.0]), QuadBezTo([100.0, 205.0])],
+                        stroke = Some(Stroke { width: 5.0, line_join: LineJoin::Round, ..Default::default() }), />
+            }
         }
     }
 }
