@@ -3,8 +3,9 @@ extern crate exgui;
 
 use std::collections::HashMap;
 use std::path::Path;
-use nanovg::{Context, ContextBuilder, Font, Frame, Color as NanovgColor, StrokeOptions, PathOptions};
-use exgui::{Node, ModelComponent, Drawable, Shape, Color};
+use nanovg::{Context, ContextBuilder, Font, Frame, Color as NanovgColor,
+             StrokeOptions, LineCap as NanovgLineCap, LineJoin as NanovgLineJoin, PathOptions};
+use exgui::{Node, ModelComponent, Drawable, Shape, Color, Stroke, LineCap, LineJoin};
 
 pub trait AsNanovgColor {
     fn as_nanovg_color(&self) -> NanovgColor;
@@ -97,10 +98,7 @@ impl<'a> Renderer<'a> {
                             if let Some(stroke) = r.stroke {
                                 path.stroke(
                                     stroke.color.as_nanovg_color(),
-                                    StrokeOptions {
-                                        width: stroke.width,
-                                        ..Default::default()
-                                    }
+                                    Self::stroke_option(&stroke)
                                 );
                             }
                         },
@@ -117,10 +115,88 @@ impl<'a> Renderer<'a> {
                             if let Some(stroke) = c.stroke {
                                 path.stroke(
                                     stroke.color.as_nanovg_color(),
-                                    StrokeOptions {
-                                        width: stroke.width,
-                                        ..Default::default()
-                                    }
+                                    Self::stroke_option(&stroke)
+                                );
+                            }
+                        },
+                        PathOptions::default(),
+                    );
+                },
+                Shape::Path(ref p) => {
+                    frame.path(
+                        |path| {
+                            use exgui::PathCommand::*;
+
+                            let mut last_xy = [0.0_f32, 0.0];
+                            let mut bez_ctrls = [(0.0_f32, 0.0), (0.0_f32, 0.0)];
+
+                            for cmd in p.cmd.iter() {
+                                match cmd {
+                                    Move(ref xy) => {
+                                        last_xy = *xy;
+                                        path.move_to((last_xy[0], last_xy[1]));
+                                    },
+                                    MoveRel(ref xy) => {
+                                        last_xy = [last_xy[0] + xy[0], last_xy[1] + xy[1]];
+                                        path.move_to((last_xy[0], last_xy[1]));
+                                    },
+                                    Line(ref xy) => {
+                                        last_xy = *xy;
+                                        path.line_to((last_xy[0], last_xy[1]));
+                                    },
+                                    LineRel(ref xy) => {
+                                        last_xy = [last_xy[0] + xy[0], last_xy[1] + xy[1]];
+                                        path.line_to((last_xy[0], last_xy[1]));
+                                    },
+                                    LineAlonX(ref x) => {
+                                        last_xy[0] = *x;
+                                        path.line_to((last_xy[0], last_xy[1]));
+                                    },
+                                    LineAlonXRel(ref x) => {
+                                        last_xy[0] += *x;
+                                        path.line_to((last_xy[0], last_xy[1]));
+                                    },
+                                    LineAlonY(ref y) => {
+                                        last_xy[1] = *y;
+                                        path.line_to((last_xy[0], last_xy[1]));
+                                    },
+                                    LineAlonYRel(ref y) => {
+                                        last_xy[1] += *y;
+                                        path.line_to((last_xy[0], last_xy[1]));
+                                    },
+                                    Close => path.close(),
+                                    BezCtrl(ref xy) => {
+                                        bez_ctrls = [bez_ctrls[1], (xy[0], xy[1])];
+                                    },
+                                    BezCtrlRel(ref xy) => {
+                                        bez_ctrls = [bez_ctrls[1], (last_xy[0] + xy[0], last_xy[1] + xy[1])];
+                                    },
+                                    QuadBezTo(ref xy) => {
+                                        last_xy = *xy;
+                                        path.quad_bezier_to((last_xy[0], last_xy[1]), bez_ctrls[1]);
+                                    },
+                                    QuadBezToRel(ref xy) => {
+                                        last_xy = [last_xy[0] + xy[0], last_xy[1] + xy[1]];
+                                        path.quad_bezier_to((last_xy[0], last_xy[1]), bez_ctrls[1]);
+                                    },
+                                    CubBezTo(ref xy) => {
+                                        last_xy = *xy;
+                                        path.cubic_bezier_to((last_xy[0], last_xy[1]), bez_ctrls[0], bez_ctrls[1]);
+                                    },
+                                    CubBezToRel(ref xy) => {
+                                        last_xy = [last_xy[0] + xy[0], last_xy[1] + xy[1]];
+                                        path.cubic_bezier_to((last_xy[0], last_xy[1]), bez_ctrls[0], bez_ctrls[1]);
+                                    },
+                                    _ => panic!("Not impl rendering cmd {:?}", cmd), // TODO: need refl impl
+                                }
+                            }
+                            if let Some(fill) = p.fill {
+                                path.fill(fill.color.as_nanovg_color(), Default::default());
+                            };
+                            if let Some(stroke) = p.stroke {
+                                path.stroke(
+                                    stroke.color.as_nanovg_color(),
+                                    Self::stroke_option(&stroke)
                                 );
                             }
                         },
@@ -134,6 +210,26 @@ impl<'a> Renderer<'a> {
             for child in childs {
                 Self::render_draw(frame, child);
             }
+        }
+    }
+
+    fn stroke_option(stroke: &Stroke) -> StrokeOptions {
+        let line_cap = match stroke.line_cap {
+            LineCap::Butt => NanovgLineCap::Butt,
+            LineCap::Round => NanovgLineCap::Round,
+            LineCap::Square => NanovgLineCap::Square,
+        };
+        let line_join = match stroke.line_join {
+            LineJoin::Miter => NanovgLineJoin::Miter,
+            LineJoin::Round => NanovgLineJoin::Round,
+            LineJoin::Bevel => NanovgLineJoin::Bevel,
+        };
+        StrokeOptions {
+            width: stroke.width,
+            line_cap,
+            line_join,
+            miter_limit: stroke.miter_limit,
+            ..Default::default()
         }
     }
 }
