@@ -6,7 +6,7 @@ extern crate exgui_renderer_nanovg as renderer;
 
 use glutin::{GlContext, ElementState, MouseButton};
 use renderer::Renderer;
-use exgui::{ModelComponent, Viewable, Node, Color, Stroke, LineJoin, PathCommand::*, controller::MouseInput};
+use exgui::{ModelComponent, Viewable, Node, Comp, Color, Stroke, LineJoin, PathCommand::*, controller::MouseInput};
 
 #[derive(Debug)]
 struct Smile {
@@ -119,9 +119,8 @@ fn main() {
         gl::ClearColor(0.8, 0.8, 0.8, 1.0);
     }
 
-    let mut model = Model::create(&());
-    let mut model_node = model.view();
-    model_node.resolve(None);
+    let mut comp = Comp::new::<Model>(());
+    comp.resolve(None);
 
     let mut render = Renderer::new();
 
@@ -139,7 +138,7 @@ fn main() {
         render.width = width as f32;
         render.height = height as f32;
         render.device_pixel_ratio = gl_window.hidpi_factor();
-        render.render(&model_node);
+        render.render(comp.view_node::<Model>());
 
         gl_window.swap_buffers().unwrap();
 
@@ -152,10 +151,7 @@ fn main() {
                         mouse_controller.update_pos(x_pos, y_pos);
                     },
                     glutin::WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
-                        if mouse_controller.left_pressed(&mut model, &mut model_node) {
-                            model_node = model.view();
-                            model_node.resolve(None);
-                        }
+                        mouse_controller.left_pressed_comp(&mut comp);
                     },
                     _ => (),
                 }
