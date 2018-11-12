@@ -75,14 +75,10 @@ impl<'a> Renderer<'a> {
         self.context.frame(
             (self.width, self.height),
             self.device_pixel_ratio,
-            Self::render_handler(node)
+            move |frame| {
+                Self::render_draw(&frame, node as &dyn Drawable);
+            }
         );
-    }
-
-    pub fn render_handler<MC: ModelComponent>(node: &'a Node<MC>) -> impl FnOnce(Frame<'a>) {
-        move |frame| {
-            Self::render_draw(&frame, node as &dyn Drawable);
-        }
     }
 
     fn render_draw(frame: &Frame<'a>, draw: &dyn Drawable) {
