@@ -4,19 +4,57 @@ extern crate exgui;
 use std::collections::HashMap;
 use std::path::Path;
 use nanovg::{
-    Context, ContextBuilder, Font, Frame, Color as NanovgColor, StrokeOptions, PathOptions,
+    Context, ContextBuilder, Font, Frame, Color as NanovgColor, Gradient as NanovgGradient,
+    Paint as NanovgPaint, StrokeOptions, PathOptions,
     LineCap as NanovgLineCap, LineJoin as NanovgLineJoin, Transform as NanovgTransform,
 };
-use exgui::{Node, ModelComponent, Drawable, Shape, Color, Stroke, Transform, LineCap, LineJoin};
+use exgui::{Node, ModelComponent, Drawable, Shape, Paint, Color, Gradient, Stroke, Transform, LineCap, LineJoin};
 
-pub trait AsNanovgColor {
-    fn as_nanovg_color(&self) -> NanovgColor;
+struct ToNanovgPaint(Paint);
+
+impl ToNanovgPaint {
+    fn to_nanovg_color(color: Color) -> NanovgColor {
+        let [r, g, b, a] = color.as_arr();
+        NanovgColor::new(r, g, b, a)
+    }
+
+    fn to_nanovg_gradient(gradient: Gradient) -> NanovgGradient {
+        match gradient {
+            Gradient::Linear { start, end, start_color, end_color } =>
+                NanovgGradient::Linear {
+                    start, end,
+                    start_color: Self::to_nanovg_color(start_color),
+                    end_color: Self::to_nanovg_color(end_color),
+                },
+            Gradient::Box { position, size, radius, feather, start_color, end_color } =>
+                NanovgGradient::Box {
+                    position, size, radius, feather,
+                    start_color: Self::to_nanovg_color(start_color),
+                    end_color: Self::to_nanovg_color(end_color),
+                },
+            Gradient::Radial { center, inner_radius, outer_radius, start_color, end_color } =>
+                NanovgGradient::Radial {
+                    center, inner_radius, outer_radius,
+                    start_color: Self::to_nanovg_color(start_color),
+                    end_color: Self::to_nanovg_color(end_color),
+                },
+        }
+    }
 }
 
-impl AsNanovgColor for Color {
-    fn as_nanovg_color(&self) -> NanovgColor {
-        let [r, g, b, a] = self.as_arr();
-        NanovgColor::new(r, g, b, a)
+impl NanovgPaint for ToNanovgPaint {
+    fn fill(&self, context: &Context) {
+        match self.0 {
+            Paint::Color(ref color) => Self::to_nanovg_color(*color).fill(context),
+            Paint::Gradient(ref gradient) => Self::to_nanovg_gradient(*gradient).fill(context),
+        }
+    }
+
+    fn stroke(&self, context: &Context) {
+        match self.0 {
+            Paint::Color(ref color) => Self::to_nanovg_color(*color).stroke(context),
+            Paint::Gradient(ref gradient) => Self::to_nanovg_gradient(*gradient).stroke(context),
+        }
     }
 }
 
@@ -91,11 +129,11 @@ impl<'a> Renderer<'a> {
                         |path| {
                             path.rect((r.x, r.y), (r.width, r.height));
                             if let Some(fill) = r.fill {
-                                path.fill(fill.color.as_nanovg_color(), Default::default());
+                                path.fill(ToNanovgPaint(fill.paint), Default::default());
                             };
                             if let Some(stroke) = r.stroke {
                                 path.stroke(
-                                    stroke.color.as_nanovg_color(),
+                                    ToNanovgPaint(stroke.paint),
                                     Self::stroke_option(&stroke)
                                 );
                             }
@@ -108,11 +146,11 @@ impl<'a> Renderer<'a> {
                         |path| {
                             path.circle((c.cx, c.cy), c.r);
                             if let Some(fill) = c.fill {
-                                path.fill(fill.color.as_nanovg_color(), Default::default());
+                                path.fill(ToNanovgPaint(fill.paint), Default::default());
                             };
                             if let Some(stroke) = c.stroke {
                                 path.stroke(
-                                    stroke.color.as_nanovg_color(),
+                                    ToNanovgPaint(stroke.paint),
                                     Self::stroke_option(&stroke)
                                 );
                             }
@@ -189,11 +227,11 @@ impl<'a> Renderer<'a> {
                                 }
                             }
                             if let Some(fill) = p.fill {
-                                path.fill(fill.color.as_nanovg_color(), Default::default());
+                                path.fill(ToNanovgPaint(fill.paint), Default::default());
                             };
                             if let Some(stroke) = p.stroke {
                                 path.stroke(
-                                    stroke.color.as_nanovg_color(),
+                                    ToNanovgPaint(stroke.paint),
                                     Self::stroke_option(&stroke)
                                 );
                             }
