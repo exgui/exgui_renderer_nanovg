@@ -9,7 +9,7 @@ use std::f32::consts::PI;
 use glutin::{GlContext, ElementState, MouseButton};
 use renderer::Renderer;
 use exgui::{
-    ModelComponent, Viewable, Node, Comp, Color,
+    ModelComponent, Viewable, Node, Comp, Color, Gradient,
     PathCommand::*, Transform, controller::MouseInput
 };
 use chrono::{DateTime, Local, Timelike, Datelike};
@@ -102,13 +102,19 @@ impl Viewable<Clock> for Clock {
             theta: self.hour_angle,
         };
 
-        let silver = Color::RGB(255.0 / 196.0,255.0 / 199.0,255.0 / 206.0);
+        let silver = Color::RGB(196.0 / 255.0,199.0 / 255.0,206.0 / 255.0);
+        let darksilver = Color::RGB(148.0 / 255.0, 152.0 / 255.0, 161.0 / 255.0);
+        let darkgray = Color::RGB(169.0 / 255.0, 169.0 / 255.0, 169.0 / 255.0);
+        let boss_rad = 6.0_f32;
 
         egml! {
             <group translate = Some((self.dial_center.0, self.dial_center.1).into()), >
+                // Dial
                 <circle cx = 0.0, cy = 0.0, r = self.dial_radius,
                     stroke = Some((silver, 3.0).into()),
                     fill = Some(Color::RGB(0.2, 0.0, 0.8).into()), />
+
+                // Second hand
                 <Hand: with second_hand_props,
                     modifier = |this, clock_model: Clock| {
                         let hand_theta = this.model::<Hand>().theta;
@@ -116,6 +122,8 @@ impl Viewable<Clock> for Clock {
                             this.send::<Hand>(HandMsg::ChangeTheta(clock_model.second_angle));
                         }
                     }, />
+
+                // Minute hand
                 <Hand: with minute_hand_props,
                     modifier = |this, clock_model: Clock| {
                         let hand_theta = this.model::<Hand>().theta;
@@ -123,6 +131,8 @@ impl Viewable<Clock> for Clock {
                             this.send::<Hand>(HandMsg::ChangeTheta(clock_model.minute_angle));
                         }
                     }, />
+
+                // Hour hand
                 <Hand: with hour_hand_props,
                     modifier = |this, clock_model: Clock| {
                         let hand_theta = this.model::<Hand>().theta;
@@ -130,6 +140,17 @@ impl Viewable<Clock> for Clock {
                             this.send::<Hand>(HandMsg::ChangeTheta(clock_model.hour_angle));
                         }
                     }, />
+
+                // Boss
+                <circle cx = 0.0, cy = 0.0, r = boss_rad,
+                    stroke = Some(darkgray.into()),
+                    fill = Some(Gradient::Radial {
+                        center: (0.0, 0.0),
+                        inner_radius: 0.0,
+                        outer_radius: boss_rad,
+                        start_color: silver,
+                        end_color: darksilver,
+                    }.into()), />
             </group>
         }
     }
