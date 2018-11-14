@@ -40,9 +40,9 @@ impl ModelComponent for Ball {
                 true
             }
             Msg::PosUpdate => {
-                self.dir = if self.cy <= 70.0 && self.dir < 0 {
+                self.dir = if self.cy <= 20.0 && self.dir < 0 {
                     1
-                } else if self.cy >= 330.0 && self.dir > 0 {
+                } else if self.cy >= 280.0 && self.dir > 0 {
                     -1
                 } else {
                     self.dir
@@ -108,7 +108,7 @@ fn main() {
         }
 
         comp.send::<Ball>(Msg::PosUpdate);
-        comp.modify();
+        comp.modify(None);
 
         render.width = width as f32;
         render.height = height as f32;

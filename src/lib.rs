@@ -3,9 +3,11 @@ extern crate exgui;
 
 use std::collections::HashMap;
 use std::path::Path;
-use nanovg::{Context, ContextBuilder, Font, Frame, Color as NanovgColor,
-             StrokeOptions, LineCap as NanovgLineCap, LineJoin as NanovgLineJoin, PathOptions};
-use exgui::{Node, ModelComponent, Drawable, Shape, Color, Stroke, LineCap, LineJoin};
+use nanovg::{
+    Context, ContextBuilder, Font, Frame, Color as NanovgColor, StrokeOptions, PathOptions,
+    LineCap as NanovgLineCap, LineJoin as NanovgLineJoin, Transform as NanovgTransform,
+};
+use exgui::{Node, ModelComponent, Drawable, Shape, Color, Stroke, Transform, LineCap, LineJoin};
 
 pub trait AsNanovgColor {
     fn as_nanovg_color(&self) -> NanovgColor;
@@ -98,7 +100,7 @@ impl<'a> Renderer<'a> {
                                 );
                             }
                         },
-                        PathOptions::default(),
+                        Self::path_options(r.transform.as_ref()),
                     );
                 },
                 Shape::Circle(ref c) => {
@@ -115,7 +117,7 @@ impl<'a> Renderer<'a> {
                                 );
                             }
                         },
-                        PathOptions::default(),
+                        Self::path_options(c.transform.as_ref()),
                     );
                 },
                 Shape::Path(ref p) => {
@@ -196,7 +198,7 @@ impl<'a> Renderer<'a> {
                                 );
                             }
                         },
-                        PathOptions::default(),
+                        Self::path_options(p.transform.as_ref()),
                     );
                 },
                 Shape::Group(ref _g) => {},
@@ -206,6 +208,22 @@ impl<'a> Renderer<'a> {
             for child in childs {
                 Self::render_draw(frame, child);
             }
+        }
+    }
+
+    fn path_options(transform: Option<&Transform>) -> PathOptions {
+        if let Some(transform) = transform {
+            let mut nanovg_transform = NanovgTransform::new();
+            if transform.absolute {
+                nanovg_transform.absolute();
+            }
+            nanovg_transform.matrix = transform.matrix;
+            PathOptions {
+                transform: Some(nanovg_transform),
+                ..Default::default()
+            }
+        } else {
+            PathOptions::default()
         }
     }
 
