@@ -15,6 +15,7 @@ use exgui::{
 use chrono::{DateTime, Local, Timelike, Datelike};
 
 const INIT_WINDOW_SIZE: (u32, u32) = (480, 480);
+const TWO_PI: f32 = 2.0 * PI;
 
 #[derive(Debug, Default)]
 struct Clock {
@@ -70,11 +71,10 @@ impl ModelComponent for Clock {
                 self.month = dt.month();
                 self.day = dt.day();
 
-                let two_pi = 2.0 * PI;
-                let radians_per_sec = two_pi / 60.0;
+                let radians_per_sec = TWO_PI / 60.0;
 //                let radians_per_hour = two_pi / 12.0;
 
-                self.hour_angle = (((self.hour * 60.0 + self.minute) / 60.0) / 12.0) * two_pi;
+                self.hour_angle = (((self.hour * 60.0 + self.minute) / 60.0) / 12.0) * TWO_PI;
                 self.minute_angle = self.minute * radians_per_sec;
                 self.second_angle = self.second * radians_per_sec;
 
@@ -113,6 +113,11 @@ impl Viewable<Clock> for Clock {
                 <circle cx = 0.0, cy = 0.0, r = self.dial_radius,
                     stroke = Some((silver, 3.0).into()),
                     fill = Some(Color::RGB(0.2, 0.0, 0.8).into()), />
+
+                // tick markers
+                { for (1..=60)
+                        .filter(|m| m % 5 != 0)
+                        .map(|m| self.view_tick(m as f32, 3.0, 1.0)) }
 
                 // Second hand
                 <Hand: with second_hand_props,
@@ -166,6 +171,16 @@ impl Clock {
             true
         } else {
             false
+        }
+    }
+
+    fn view_tick(&self, m: f32, len: f32, width: f32) -> Node<Clock> {
+        let radians_per_sec = TWO_PI / 60.0;
+        let ticks_radius = self.dial_radius * 0.925;
+        egml! {
+            <path cmd = vec![Move([0.0, -ticks_radius]), Line([0.0, -ticks_radius - len]), Close],
+                fill = Some(Color::White.into()), stroke = Some((Color::White, width).into()),
+                transform = Some(Transform::new().with_rotation(m * radians_per_sec)), />
         }
     }
 }
