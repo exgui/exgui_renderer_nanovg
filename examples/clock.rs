@@ -9,7 +9,7 @@ use std::f32::consts::PI;
 use glutin::{GlContext, ElementState, MouseButton};
 use renderer::Renderer;
 use exgui::{
-    ModelComponent, Viewable, Node, Comp, Color, Gradient,
+    ModelComponent, Viewable, Node, Comp, Color, Gradient, AlignHor::*, AlignVer::*,
     PathCommand::*, Transform, controller::MouseInput
 };
 use chrono::{DateTime, Local, Timelike, Datelike};
@@ -72,7 +72,6 @@ impl ModelComponent for Clock {
                 self.day = dt.day();
 
                 let radians_per_sec = TWO_PI / 60.0;
-//                let radians_per_hour = two_pi / 12.0;
 
                 self.hour_angle = (((self.hour * 60.0 + self.minute) / 60.0) / 12.0) * TWO_PI;
                 self.minute_angle = self.minute * radians_per_sec;
@@ -86,8 +85,9 @@ impl ModelComponent for Clock {
 
 impl Viewable<Clock> for Clock {
     fn view(&self) -> Node<Self> {
+        let second_hand_len = self.dial_radius * 0.9;
         let second_hand_props = HandProperties {
-            length: self.dial_radius * 0.9,
+            length: second_hand_len,
             width: 1.0,
             theta: self.second_angle,
         };
@@ -113,6 +113,9 @@ impl Viewable<Clock> for Clock {
                 <circle cx = 0.0, cy = 0.0, r = self.dial_radius,
                     stroke = Some((silver, 3.0).into()),
                     fill = Some(Color::RGB(0.2, 0.0, 0.8).into()), />
+
+                // hour/minute markers
+                { for (1..=12).map(|n| self.view_num(n, second_hand_len, 24.0)) }
 
                 // tick markers
                 { for (1..=60)
@@ -171,6 +174,20 @@ impl Clock {
             true
         } else {
             false
+        }
+    }
+
+    fn view_num(&self, n: i32, len: f32, font_size: f32) -> Node<Clock> {
+        let radians_per_hour = TWO_PI / 12.0;
+        let x = len * (n as f32 * radians_per_hour).sin();
+        let y = - len * (n as f32 * radians_per_hour).cos();
+        let silver = Color::RGB(196.0 / 255.0,199.0 / 255.0,206.0 / 255.0);
+
+        egml! {
+            <font name = "Roboto", x = x, y = y, size = font_size, align = (Center, Middle),
+                    fill = Some(silver.into()), >
+                { format!("{}", n) }
+            </font>
         }
     }
 
@@ -255,6 +272,7 @@ fn main() {
     clock.resolve(None);
 
     let mut render = Renderer::new();
+    render.load_font("Roboto", "resources/Roboto-Regular.ttf");
 
     let mut prev_second = -1.0;
     let mut running = true;
