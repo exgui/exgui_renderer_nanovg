@@ -31,6 +31,7 @@ struct Clock {
     year: i32,
     month: u32,
     day: u32,
+    day_changed: bool,
 
     hour_angle: f32,
     minute_angle: f32,
@@ -69,7 +70,14 @@ impl ModelComponent for Clock {
 
                 self.year = dt.year();
                 self.month = dt.month();
-                self.day = dt.day();
+
+                let day = dt.day();
+                if self.day == day {
+                    self.day_changed = false;
+                } else {
+                    self.day = day;
+                    self.day_changed = true;
+                }
 
                 let radians_per_sec = TWO_PI / 60.0;
 
@@ -114,13 +122,26 @@ impl Viewable<Clock> for Clock {
                     stroke = Some((silver, 3.0).into()),
                     fill = Some(Color::RGB(0.2, 0.0, 0.8).into()), />
 
-                // hour/minute markers
+                // Hour/minute markers
                 { for (1..=12).map(|n| self.view_num(n, second_hand_len, 24.0)) }
 
-                // tick markers
+                // Tick markers
                 { for (1..=60)
                         .filter(|m| m % 5 != 0)
                         .map(|m| self.view_tick(m as f32, 3.0, 1.0)) }
+
+                // Date-string
+                <font name = "Roboto", x = 0.0, y = self.dial_radius * 0.7, size = 24.0,
+                        align = (Center, Baseline), fill = Some(silver.into()), >
+                    { format!("{:4}-{:02}-{:02}", self.year, self.month, self.day) }
+                        .text.modifier = |this, clock_model: Clock| {
+                            if clock_model.day_changed {
+                                this.content = format!(
+                                    "{:4}-{:02}-{:02}", clock_model.year, clock_model.month, clock_model.day
+                                );
+                            }
+                        },
+                </font>
 
                 // Second hand
                 <Hand: with second_hand_props,
