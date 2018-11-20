@@ -1,14 +1,16 @@
 extern crate nanovg;
 extern crate exgui;
 
-use std::collections::HashMap;
 use std::path::Path;
 use nanovg::{
-    Context, ContextBuilder, Font, Frame, Color as NanovgColor, Gradient as NanovgGradient,
-    Paint as NanovgPaint, StrokeOptions, PathOptions,
+    Context, ContextBuilder, Font as NanovgFont, Frame, Color as NanovgColor, Gradient as NanovgGradient,
+    Paint as NanovgPaint, StrokeOptions, PathOptions, TextOptions, Alignment,
     LineCap as NanovgLineCap, LineJoin as NanovgLineJoin, Transform as NanovgTransform,
 };
-use exgui::{Node, ModelComponent, Drawable, Shape, Paint, Color, Gradient, Stroke, Transform, LineCap, LineJoin};
+use exgui::{
+    Node, ModelComponent, Drawable, Shape, Paint, Color, Gradient, Stroke, Font, AlignHor, AlignVer,
+    Transform, LineCap, LineJoin
+};
 
 struct ToNanovgPaint(Paint);
 
@@ -58,15 +60,14 @@ impl NanovgPaint for ToNanovgPaint {
     }
 }
 
-pub struct Renderer<'a> {
+pub struct Renderer {
     pub context: Context,
-    pub fonts: HashMap<String, Font<'a>>,
     pub width: f32,
     pub height: f32,
     pub device_pixel_ratio: f32,
 }
 
-impl<'a> Renderer<'a> {
+impl Renderer {
     pub fn new() -> Self {
         let context = ContextBuilder::new()
             .stencil_strokes()
@@ -74,14 +75,12 @@ impl<'a> Renderer<'a> {
             .expect("Initialization of NanoVG context failed!");
 
         let renderer = Self::new_with_context(context);
-        //renderer.load_font("Roboto", "resources/Roboto-Regular.ttf");
         renderer
     }
 
     pub fn new_with_context(context: Context) -> Self {
         Renderer {
             context,
-            fonts: HashMap::new(),
             width: 0.0,
             height: 0.0,
             device_pixel_ratio: 0.0,
@@ -103,12 +102,11 @@ impl<'a> Renderer<'a> {
         self
     }
 
-    pub fn load_font<S: Into<String>, P: AsRef<Path>>(&'a mut self, name: S, path: P) {
+    pub fn load_font<S: Into<String>, P: AsRef<Path>>(&mut self, name: S, path: P) {
         let name = name.into();
         let display_path = path.as_ref().display();
-        let font = Font::from_file(&self.context, name.as_str(), path.as_ref())
+        NanovgFont::from_file(&self.context, name.as_str(), path.as_ref())
             .expect(&format!("Failed to load font '{}'", display_path));
-        self.fonts.insert(name, font);
     }
 
     pub fn render<MC: ModelComponent>(&self, node: &Node<MC>) {
@@ -116,12 +114,13 @@ impl<'a> Renderer<'a> {
             (self.width, self.height),
             self.device_pixel_ratio,
             move |frame| {
-                Self::render_draw(&frame, node as &dyn Drawable);
+                let mut font_stack = Vec::new();
+                Self::render_draw(&frame, node as &dyn Drawable, &mut font_stack);
             }
         );
     }
 
-    fn render_draw(frame: &Frame<'a>, draw: &dyn Drawable) {
+    fn render_draw<'a>(frame: &Frame, draw: &'a dyn Drawable, font_stack: &mut Vec<&'a Font>) {
         if let Some(shape) = draw.shape() {
             match shape {
                 Shape::Rect(ref r) => {
@@ -240,13 +239,72 @@ impl<'a> Renderer<'a> {
                     );
                 },
                 Shape::Group(ref _g) => {},
+                Shape::Font(ref f) => {
+                    font_stack.push(f);
+                    if let Some(childs) = draw.childs() {
+                        for child in childs {
+                            Self::render_draw(frame, child, font_stack);
+                        }
+                    }
+                    font_stack.pop();
+                    return;
+                },
+                Shape::Text(ref t) => {
+                    if let Some(f) = font_stack.last() {
+                        let nanovg_font = NanovgFont::find(frame.context(), f.name.as_str())
+                            .expect(&format!("Font '{}' not found", f.name));
+                        let color = ToNanovgPaint::to_nanovg_color(
+                            f.fill.and_then(|fill| if let Paint::Color(color) = fill.paint {
+                                Some(color)
+                            } else {
+                                None
+                            }).unwrap_or_default()
+                        );
+                        let mut align = Alignment::new();
+                        align = match f.align.0 {
+                            AlignHor::Left => align.left(),
+                            AlignHor::Right => align.right(),
+                            AlignHor::Center => align.center(),
+                        };
+                        align = match f.align.1 {
+                            AlignVer::Bottom => align.bottom(),
+                            AlignVer::Middle => align.middle(),
+                            AlignVer::Baseline => align.baseline(),
+                            AlignVer::Top => align.top(),
+                        };
+
+                        frame.text(
+                            nanovg_font,
+                            (f.x, f.y),
+                            t,
+                            TextOptions {
+                                color,
+                                size: f.size,
+                                align,
+                                transform: Self::to_nanovg_transform(f.transform.as_ref()),
+                                ..Default::default()
+                            },
+                        );
+                    }
+                },
             }
         }
         if let Some(childs) = draw.childs() {
             for child in childs {
-                Self::render_draw(frame, child);
+                Self::render_draw(frame, child, font_stack);
             }
         }
+    }
+
+    fn to_nanovg_transform(transform: Option<&Transform>) -> Option<NanovgTransform> {
+        transform.map(|transform| {
+            let mut nanovg_transform = NanovgTransform::new();
+            if transform.absolute {
+                nanovg_transform.absolute();
+            }
+            nanovg_transform.matrix = transform.matrix;
+            nanovg_transform
+        })
     }
 
     fn path_options(transform: Option<&Transform>) -> PathOptions {
