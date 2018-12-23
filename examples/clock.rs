@@ -47,18 +47,18 @@ impl ModelComponent for Clock {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_props: &<Self as ModelComponent>::Properties) -> Self {
+    fn create(_props: &Self::Properties) -> Self {
         let (width, height) = INIT_WINDOW_SIZE;
         let mut clock = Clock::default();
         clock.size_recalc(width as i32, height as i32);
         clock
     }
 
-    fn update(&mut self, msg: <Self as ModelComponent>::Message) -> bool {
+    fn update(&mut self, msg: Self::Message) -> bool {
         match msg {
             Msg::ResizeWindow(w, h) => {
                 self.size_recalc(w, h)
-            }
+            },
             Msg::Tick => {
                 let dt: DateTime<Local> = Local::now(); // e.g. `2018-11-28T21:45:59.324310806+09:00`
                 let hour = dt.hour();
