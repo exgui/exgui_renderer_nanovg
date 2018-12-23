@@ -17,7 +17,6 @@ struct Ball {
 
 pub enum Msg {
     Toggle,
-    Nope,
     PosUpdate,
 }
 
@@ -25,7 +24,7 @@ impl ModelComponent for Ball {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_props: &<Self as ModelComponent>::Properties) -> Self {
+    fn create(_props: &Self::Properties) -> Self {
         Ball {
             normal: true,
             dir: 1,
@@ -33,12 +32,12 @@ impl ModelComponent for Ball {
         }
     }
 
-    fn update(&mut self, msg: <Self as ModelComponent>::Message) -> bool {
+    fn update(&mut self, msg: Self::Message) -> bool {
         match msg {
             Msg::Toggle => {
                 self.normal = !self.normal;
                 true
-            }
+            },
             Msg::PosUpdate => {
                 self.dir = if self.cy <= 20.0 && self.dir < 0 {
                     1
@@ -50,7 +49,6 @@ impl ModelComponent for Ball {
                 self.cy += (self.dir * 2) as f32;
                 false
             },
-            Msg::Nope => false,
         }
     }
 }
@@ -58,11 +56,11 @@ impl ModelComponent for Ball {
 impl Viewable<Ball> for Ball {
     fn view(&self) -> Node<Self> {
         egml! {
-            <group translate = Some((50.0, 50.0).into()), >
+            <group translate = (50.0, 50.0), >
                 <rect x = 0.0, y = 0.0, width = 300.0, height = 300.0,
-                        fill = None, stroke = Some((Color::Black, 2.0, 0.5).into()), >
+                        fill = None, stroke = (Color::Black, 2.0, 0.5), >
                     <circle cx = 150.0, cy = self.cy, r = 20.0,
-                            fill = Some(if self.normal { Color::Blue } else { Color::Red }.into()),
+                            fill = if self.normal { Color::Blue } else { Color::Red },
                             modifier = |this, model: Ball| {
                                 this.cy = model.cy;
                             },

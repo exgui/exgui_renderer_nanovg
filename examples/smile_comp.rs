@@ -15,26 +15,24 @@ struct Smile {
 
 pub enum Msg {
     ToggleFace,
-    Nope,
 }
 
 impl ModelComponent for Smile {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_props: &<Self as ModelComponent>::Properties) -> Self {
+    fn create(_props: &Self::Properties) -> Self {
         Smile {
             normal_face: true,
         }
     }
 
-    fn update(&mut self, msg: <Self as ModelComponent>::Message) -> bool {
+    fn update(&mut self, msg: Self::Message) -> bool {
         match msg {
             Msg::ToggleFace => {
                 self.normal_face = !self.normal_face;
                 true
             }
-            Msg::Nope => false,
         }
     }
 }
@@ -42,11 +40,11 @@ impl ModelComponent for Smile {
 impl Viewable<Smile> for Smile {
     fn view(&self) -> Node<Self> {
         egml! {
-            <group stroke = Some((Color::Black, 5.0).into()), >
+            <group stroke = (Color::Black, 5.0), >
                 <circle cx = 150.0, cy = 150.0, r = 100.0,
-                    fill = Some(if self.normal_face { Color::Yellow } else { Color::Red }.into()),
+                    fill = if self.normal_face { Color::Yellow } else { Color::Red },
                     onclick = |_| Msg::ToggleFace, />
-                <group fill = Some(if self.normal_face { Color::Black } else { Color::White }.into()), >
+                <group fill = if self.normal_face { Color::Black } else { Color::White }, >
                     <circle cx = 110.0, cy = 130.0, r = 15.0, />
                     <circle cx = 190.0, cy = 130.0, r = 15.0, />
                     { self.view_mouth() }
@@ -61,12 +59,12 @@ impl Smile {
         if self.normal_face {
             egml! {
                 <path cmd = vec![Move([100.0, 180.0]), BezCtrl([150.0, 230.0]), QuadBezTo([200.0, 180.0]), BezCtrl([150.0, 210.0]), QuadBezTo([100.0, 180.0])],
-                        stroke = Some(Stroke { width: 5.0, line_join: LineJoin::Round, ..Default::default() }), />
+                        stroke = Stroke { width: 5.0, line_join: LineJoin::Round, ..Default::default() }, />
             }
         } else {
             egml! {
                 <path cmd = vec![Move([100.0, 205.0]), BezCtrl([150.0, 155.0]), QuadBezTo([200.0, 205.0]), BezCtrl([150.0, 175.0]), QuadBezTo([100.0, 205.0])],
-                        stroke = Some(Stroke { width: 5.0, line_join: LineJoin::Round, ..Default::default() }), />
+                        stroke = Stroke { width: 5.0, line_join: LineJoin::Round, ..Default::default() }, />
             }
         }
     }
@@ -91,9 +89,9 @@ impl ModelComponent for Model {
 impl Viewable<Model> for Model {
     fn view(&self) -> Node<Self> {
         egml! {
-            <group translate = Some((50.0, 50.0).into()), >
+            <group translate = (50.0, 50.0), >
                 <rect x = 0.0, y = 0.0, width = 300.0, height = 300.0,
-                        fill = None, stroke = Some((Color::Black, 2.0, 0.5).into()), >
+                        fill = None, stroke = (Color::Black, 2.0, 0.5), >
                     <Smile : />
                 </rect>
             </group>

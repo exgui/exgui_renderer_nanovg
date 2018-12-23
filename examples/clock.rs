@@ -116,11 +116,11 @@ impl Viewable<Clock> for Clock {
         let boss_rad = 6.0_f32;
 
         egml! {
-            <group translate = Some((self.dial_center.0, self.dial_center.1).into()), >
+            <group translate = (self.dial_center.0, self.dial_center.1), >
                 // Dial
                 <circle cx = 0.0, cy = 0.0, r = self.dial_radius,
-                    stroke = Some((silver, 3.0).into()),
-                    fill = Some(Color::RGB(0.2, 0.0, 0.8).into()), />
+                    stroke = (silver, 3.0),
+                    fill = Color::RGB(0.2, 0.0, 0.8), />
 
                 // Hour/minute markers
                 { for (1..=12).map(|n| self.view_num(n, second_hand_len, 24.0)) }
@@ -132,7 +132,7 @@ impl Viewable<Clock> for Clock {
 
                 // Date-string
                 <font name = "Roboto", x = 0.0, y = self.dial_radius * 0.7, size = 24.0,
-                        align = (Center, Baseline), fill = Some(silver.into()), >
+                        align = (Center, Baseline), fill = silver, >
                     { format!("{:4}-{:02}-{:02}", self.year, self.month, self.day) }
                         .text.modifier = |this, clock_model: Clock| {
                             if clock_model.day_changed {
@@ -172,14 +172,14 @@ impl Viewable<Clock> for Clock {
 
                 // Boss
                 <circle cx = 0.0, cy = 0.0, r = boss_rad,
-                    stroke = Some(darkgray.into()),
-                    fill = Some(Gradient::Radial {
+                    stroke = darkgray,
+                    fill = Gradient::Radial {
                         center: (0.0, 0.0),
                         inner_radius: 0.0,
                         outer_radius: boss_rad,
                         start_color: silver,
                         end_color: darksilver,
-                    }.into()), />
+                    }, />
             </group>
         }
     }
@@ -205,8 +205,8 @@ impl Clock {
         let silver = Color::RGB(196.0 / 255.0,199.0 / 255.0,206.0 / 255.0);
 
         egml! {
-            <font name = "Roboto", x = x, y = y, size = font_size, align = (Center, Middle),
-                    fill = Some(silver.into()), >
+            <font name = "Roboto", x = x, y = y, size = font_size,
+                    align = (Center, Middle), fill = silver, >
                 { format!("{}", n) }
             </font>
         }
@@ -217,8 +217,8 @@ impl Clock {
         let ticks_radius = self.dial_radius * 0.925;
         egml! {
             <path cmd = vec![Move([0.0, -ticks_radius]), Line([0.0, -ticks_radius - len]), Close],
-                fill = Some(Color::White.into()), stroke = Some((Color::White, width).into()),
-                transform = Some(Transform::new().with_rotation(m * radians_per_sec)), />
+                fill = Color::White, stroke = (Color::White, width),
+                transform = Transform::new().with_rotation(m * radians_per_sec), />
         }
     }
 }
@@ -264,8 +264,8 @@ impl Viewable<Hand> for Hand {
     fn view(&self) -> Node<Hand> {
         egml! {
             <path cmd = vec![Move([0.0, 0.0]), Line([0.0, -self.props.length]), Close],
-                fill = Some(Color::White.into()), stroke = Some((Color::White, self.props.width).into()),
-                transform = Some(Transform::new().with_rotation(self.theta)),
+                fill = Color::White, stroke = (Color::White, self.props.width),
+                transform = Transform::new().with_rotation(self.theta),
                 modifier = |this, model: Hand| { this.transform.as_mut().map(|t| t.rotate(model.theta)); }, />
         }
     }
