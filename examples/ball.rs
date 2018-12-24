@@ -6,7 +6,7 @@ extern crate exgui_renderer_nanovg as renderer;
 
 use glutin::{GlContext, ElementState, MouseButton};
 use renderer::Renderer;
-use exgui::{ModelComponent, Viewable, ChangeView, Node, Comp, Color, controller::MouseInput};
+use exgui::{Component, Viewable, ChangeView, Node, Comp, Color, controller::MouseInput};
 
 #[derive(Debug)]
 struct Ball {
@@ -20,7 +20,7 @@ pub enum Msg {
     PosUpdate,
 }
 
-impl ModelComponent for Ball {
+impl Component for Ball {
     type Message = Msg;
     type Properties = ();
 

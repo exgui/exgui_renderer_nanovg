@@ -8,7 +8,7 @@ use nanovg::{
     LineCap as NanovgLineCap, LineJoin as NanovgLineJoin, Transform as NanovgTransform,
 };
 use exgui::{
-    Node, ModelComponent, Drawable, Shape, Paint, Color, Gradient, Stroke, Font, AlignHor, AlignVer,
+    Node, Component, Drawable, Shape, Paint, Color, Gradient, Stroke, Font, AlignHor, AlignVer,
     Transform, LineCap, LineJoin
 };
 
@@ -109,7 +109,7 @@ impl Renderer {
             .expect(&format!("Failed to load font '{}'", display_path));
     }
 
-    pub fn render<MC: ModelComponent>(&self, node: &Node<MC>) {
+    pub fn render<M: Component>(&self, node: &Node<M>) {
         self.context.frame(
             (self.width, self.height),
             self.device_pixel_ratio,

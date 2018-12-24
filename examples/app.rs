@@ -6,11 +6,11 @@ extern crate exgui_renderer_nanovg as renderer;
 
 use glutin::GlContext;
 use renderer::Renderer;
-use exgui::{ModelComponent, Viewable, ChangeView, Node, Color};
+use exgui::{Component, Viewable, ChangeView, Node, Color};
 
 struct Model;
 
-impl ModelComponent for Model {
+impl Component for Model {
     type Message = ();
     type Properties = ();
 

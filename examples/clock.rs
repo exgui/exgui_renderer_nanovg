@@ -9,7 +9,7 @@ use std::f32::consts::PI;
 use glutin::{GlContext, ElementState, MouseButton};
 use renderer::Renderer;
 use exgui::{
-    ModelComponent, Viewable, ChangeView, Node, Comp, Color, Gradient, AlignHor::*, AlignVer::*,
+    Component, Viewable, ChangeView, Node, Comp, Color, Gradient, AlignHor::*, AlignVer::*,
     PathCommand::*, Transform, controller::MouseInput
 };
 use chrono::{DateTime, Local, Timelike, Datelike};
@@ -43,7 +43,7 @@ pub enum Msg {
     Tick,
 }
 
-impl ModelComponent for Clock {
+impl Component for Clock {
     type Message = Msg;
     type Properties = ();
 
@@ -247,7 +247,7 @@ enum HandMsg {
     ChangeTheta(f32),
 }
 
-impl ModelComponent for Hand {
+impl Component for Hand {
     type Message = HandMsg;
     type Properties = HandProperties;
 

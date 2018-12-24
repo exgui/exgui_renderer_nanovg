@@ -6,7 +6,7 @@ extern crate exgui_renderer_nanovg as renderer;
 
 use glutin::{GlContext, ElementState, MouseButton};
 use renderer::Renderer;
-use exgui::{ModelComponent, Viewable, ChangeView, Node, Comp, Color, Stroke, LineJoin, PathCommand::*, controller::MouseInput};
+use exgui::{Component, Viewable, ChangeView, Node, Comp, Color, Stroke, LineJoin, PathCommand::*, controller::MouseInput};
 
 #[derive(Debug)]
 struct Smile {
@@ -17,7 +17,7 @@ pub enum Msg {
     ToggleFace,
 }
 
-impl ModelComponent for Smile {
+impl Component for Smile {
     type Message = Msg;
     type Properties = ();
 
@@ -73,15 +73,15 @@ impl Smile {
 #[derive(Debug)]
 struct Model;
 
-impl ModelComponent for Model {
+impl Component for Model {
     type Message = ();
     type Properties = ();
 
-    fn create(_props: &<Self as ModelComponent>::Properties) -> Self {
+    fn create(_props: &Self::Properties) -> Self {
         Model
     }
 
-    fn update(&mut self, _msg: <Self as ModelComponent>::Message) -> ChangeView {
+    fn update(&mut self, _msg: Self::Message) -> ChangeView {
         ChangeView::None
     }
 }
