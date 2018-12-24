@@ -9,7 +9,7 @@ use std::f32::consts::PI;
 use glutin::{GlContext, ElementState, MouseButton};
 use renderer::Renderer;
 use exgui::{
-    ModelComponent, Viewable, Node, Comp, Color, Gradient, AlignHor::*, AlignVer::*,
+    ModelComponent, Viewable, ChangeView, Node, Comp, Color, Gradient, AlignHor::*, AlignVer::*,
     PathCommand::*, Transform, controller::MouseInput
 };
 use chrono::{DateTime, Local, Timelike, Datelike};
@@ -54,38 +54,46 @@ impl ModelComponent for Clock {
         clock
     }
 
-    fn update(&mut self, msg: Self::Message) -> bool {
+    fn update(&mut self, msg: Self::Message) -> ChangeView {
         match msg {
             Msg::ResizeWindow(w, h) => {
                 self.size_recalc(w, h)
             },
             Msg::Tick => {
                 let dt: DateTime<Local> = Local::now(); // e.g. `2018-11-28T21:45:59.324310806+09:00`
-                let hour = dt.hour();
 
-                self.am = hour < 12;
-                self.hour = f64::from(hour % 12) as f32;
-                self.minute = f64::from(dt.minute()) as f32;
+                let prev_second = self.second;
                 self.second = f64::from(dt.second()) as f32;
 
-                self.year = dt.year();
-                self.month = dt.month();
+                if (self.second - prev_second).abs() >= 1. {
+                    let hour = dt.hour();
 
-                let day = dt.day();
-                if self.day == day {
-                    self.day_changed = false;
+                    self.am = hour < 12;
+                    self.hour = f64::from(hour % 12) as f32;
+                    self.minute = f64::from(dt.minute()) as f32;
+
+
+                    self.year = dt.year();
+                    self.month = dt.month();
+
+                    let day = dt.day();
+                    if self.day == day {
+                        self.day_changed = false;
+                    } else {
+                        self.day = day;
+                        self.day_changed = true;
+                    }
+
+                    let radians_per_sec = TWO_PI / 60.0;
+
+                    self.hour_angle = (((self.hour * 60.0 + self.minute) / 60.0) / 12.0) * TWO_PI;
+                    self.minute_angle = self.minute * radians_per_sec;
+                    self.second_angle = self.second * radians_per_sec;
+
+                    ChangeView::Modify
                 } else {
-                    self.day = day;
-                    self.day_changed = true;
+                    ChangeView::None
                 }
-
-                let radians_per_sec = TWO_PI / 60.0;
-
-                self.hour_angle = (((self.hour * 60.0 + self.minute) / 60.0) / 12.0) * TWO_PI;
-                self.minute_angle = self.minute * radians_per_sec;
-                self.second_angle = self.second * radians_per_sec;
-
-                false
             },
         }
     }
@@ -186,15 +194,15 @@ impl Viewable<Clock> for Clock {
 }
 
 impl Clock {
-    fn size_recalc(&mut self, width: i32, height: i32) -> bool {
+    fn size_recalc(&mut self, width: i32, height: i32) -> ChangeView {
         let clock_size = width.min(height) - 2;
         if self.clock_size != clock_size {
             self.clock_size = clock_size;
             self.dial_radius = (self.clock_size as f64 / 2.0) as f32;
             self.dial_center = ((width as f64 / 2.0) as f32, (height as f64 / 2.0) as f32);
-            true
+            ChangeView::Rebuild
         } else {
-            false
+            ChangeView::None
         }
     }
 
@@ -243,18 +251,18 @@ impl ModelComponent for Hand {
     type Message = HandMsg;
     type Properties = HandProperties;
 
-    fn create(props: &<Self as ModelComponent>::Properties) -> Self {
+    fn create(props: &Self::Properties) -> Self {
         Hand {
             props: *props,
             theta: props.theta,
         }
     }
 
-    fn update(&mut self, msg: <Self as ModelComponent>::Message) -> bool {
+    fn update(&mut self, msg: Self::Message) -> ChangeView {
         match msg {
             HandMsg::ChangeTheta(theta) => {
                 self.theta = theta;
-                false
+                ChangeView::Modify
             }
         }
     }
@@ -295,7 +303,6 @@ fn main() {
     let mut render = Renderer::new();
     render.load_font("Roboto", "resources/Roboto-Regular.ttf");
 
-    let mut prev_second = -1.0;
     let mut running = true;
     while running {
         let (width, height) = gl_window.get_inner_size().unwrap();
@@ -308,14 +315,7 @@ fn main() {
         }
         clock.send::<Clock>(Msg::ResizeWindow(width, height));
 
-        {
-            clock.send::<Clock>(Msg::Tick);
-            let second = clock.model::<Clock>().second;
-            if prev_second != second {
-                clock.modify(None);
-                prev_second = second;
-            }
-        }
+        clock.send::<Clock>(Msg::Tick);
 
         render.width = width as f32;
         render.height = height as f32;

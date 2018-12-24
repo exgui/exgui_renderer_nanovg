@@ -6,7 +6,7 @@ extern crate exgui_renderer_nanovg as renderer;
 
 use glutin::{GlContext, ElementState, MouseButton};
 use renderer::Renderer;
-use exgui::{ModelComponent, Viewable, Node, Comp, Color, Stroke, LineJoin, PathCommand::*, controller::MouseInput};
+use exgui::{ModelComponent, Viewable, ChangeView, Node, Comp, Color, Stroke, LineJoin, PathCommand::*, controller::MouseInput};
 
 #[derive(Debug)]
 struct Smile {
@@ -27,11 +27,11 @@ impl ModelComponent for Smile {
         }
     }
 
-    fn update(&mut self, msg: Self::Message) -> bool {
+    fn update(&mut self, msg: Self::Message) -> ChangeView {
         match msg {
             Msg::ToggleFace => {
                 self.normal_face = !self.normal_face;
-                true
+                ChangeView::Rebuild
             }
         }
     }
@@ -81,8 +81,8 @@ impl ModelComponent for Model {
         Model
     }
 
-    fn update(&mut self, _msg: <Self as ModelComponent>::Message) -> bool {
-        false
+    fn update(&mut self, _msg: <Self as ModelComponent>::Message) -> ChangeView {
+        ChangeView::None
     }
 }
 
@@ -92,7 +92,7 @@ impl Viewable<Model> for Model {
             <group translate = (50.0, 50.0), >
                 <rect x = 0.0, y = 0.0, width = 300.0, height = 300.0,
                         fill = None, stroke = (Color::Black, 2.0, 0.5), >
-                    <Smile : />
+                    <Smile: />
                 </rect>
             </group>
         }

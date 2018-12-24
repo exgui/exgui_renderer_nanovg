@@ -6,7 +6,7 @@ extern crate exgui_renderer_nanovg as renderer;
 
 use glutin::GlContext;
 use renderer::Renderer;
-use exgui::{ModelComponent, Viewable, Node, Color};
+use exgui::{ModelComponent, Viewable, ChangeView, Node, Color};
 
 struct Model;
 
@@ -18,7 +18,7 @@ impl ModelComponent for Model {
         Model
     }
 
-    fn update(&mut self, _msg: Self::Message) -> bool {
+    fn update(&mut self, _msg: Self::Message) -> ChangeView {
         unimplemented!()
     }
 }

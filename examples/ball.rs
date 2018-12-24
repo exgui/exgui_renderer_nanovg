@@ -6,7 +6,7 @@ extern crate exgui_renderer_nanovg as renderer;
 
 use glutin::{GlContext, ElementState, MouseButton};
 use renderer::Renderer;
-use exgui::{ModelComponent, Viewable, Node, Comp, Color, controller::MouseInput};
+use exgui::{ModelComponent, Viewable, ChangeView, Node, Comp, Color, controller::MouseInput};
 
 #[derive(Debug)]
 struct Ball {
@@ -32,11 +32,11 @@ impl ModelComponent for Ball {
         }
     }
 
-    fn update(&mut self, msg: Self::Message) -> bool {
+    fn update(&mut self, msg: Self::Message) -> ChangeView {
         match msg {
             Msg::Toggle => {
                 self.normal = !self.normal;
-                true
+                ChangeView::Rebuild
             },
             Msg::PosUpdate => {
                 self.dir = if self.cy <= 20.0 && self.dir < 0 {
@@ -47,7 +47,7 @@ impl ModelComponent for Ball {
                     self.dir
                 };
                 self.cy += (self.dir * 2) as f32;
-                false
+                ChangeView::Modify
             },
         }
     }
@@ -106,7 +106,6 @@ fn main() {
         }
 
         comp.send::<Ball>(Msg::PosUpdate);
-        comp.modify(None);
 
         render.width = width as f32;
         render.height = height as f32;

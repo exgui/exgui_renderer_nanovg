@@ -6,7 +6,7 @@ extern crate exgui_renderer_nanovg as renderer;
 
 use glutin::{GlContext, ElementState, MouseButton};
 use renderer::Renderer;
-use exgui::{ModelComponent, Viewable, Node, PathCommand::*, Color, Stroke, LineJoin, controller::MouseInput};
+use exgui::{ModelComponent, Viewable, ChangeView, Node, PathCommand::*, Color, Stroke, LineJoin, controller::MouseInput};
 
 struct SmileModel {
     normal_face: bool,
@@ -27,13 +27,13 @@ impl ModelComponent for SmileModel {
         }
     }
 
-    fn update(&mut self, msg: Self::Message) -> bool {
+    fn update(&mut self, msg: Self::Message) -> ChangeView {
         match msg {
             Msg::ToggleFace => {
                 self.normal_face = !self.normal_face;
-                true
+                ChangeView::Rebuild
             },
-            Msg::Nope => false,
+            Msg::Nope => ChangeView::None,
         }
     }
 }
@@ -80,7 +80,7 @@ fn main() {
     let mut events_loop = glutin::EventsLoop::new();
     let mut mouse_controller = MouseInput::new();
     let window = glutin::WindowBuilder::new()
-        .with_title("ExGUI app")
+        .with_title("ExGUI smile")
         .with_dimensions(480, 480);
     let context = glutin::ContextBuilder::new()
         .with_vsync(true)
@@ -127,9 +127,15 @@ fn main() {
                         mouse_controller.update_pos(x_pos, y_pos);
                     },
                     glutin::WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
-                        if mouse_controller.left_pressed(&mut smile, &mut smile_node) {
-                            smile_node = smile.view();
-                            smile_node.resolve(None);
+                        match mouse_controller.left_pressed(&mut smile, &mut smile_node) {
+                            ChangeView::Rebuild => {
+                                smile_node = smile.view();
+                                smile_node.resolve(None);
+                            },
+                            ChangeView::Modify => {
+                                smile_node.modify(&smile);
+                            },
+                            ChangeView::None => (),
                         }
                     },
                     _ => (),
