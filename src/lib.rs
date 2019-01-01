@@ -8,8 +8,8 @@ use nanovg::{
     LineCap as NanovgLineCap, LineJoin as NanovgLineJoin, Transform as NanovgTransform,
 };
 use exgui::{
-    Node, Component, Drawable, Shape, Paint, Color, Gradient, Stroke, Font, AlignHor, AlignVer,
-    Transform, LineCap, LineJoin
+    Real, Node, Component, Drawable, Shape, Paint, Color, Gradient, Stroke,
+    Font, AlignHor, AlignVer, Transform, LineCap, LineJoin
 };
 
 struct ToNanovgPaint(Paint);
@@ -57,6 +57,24 @@ impl NanovgPaint for ToNanovgPaint {
             Paint::Color(ref color) => Self::to_nanovg_color(*color).stroke(context),
             Paint::Gradient(ref gradient) => Self::to_nanovg_gradient(*gradient).stroke(context),
         }
+    }
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
+pub struct BoundingBox {
+    pub min_x: Real,
+    pub min_y: Real,
+    pub max_x: Real,
+    pub max_y: Real,
+}
+
+impl BoundingBox {
+    pub fn width(&self) -> Real {
+        self.max_x - self.min_x
+    }
+
+    pub fn height(&self) -> Real {
+        self.max_y - self.min_y
     }
 }
 
@@ -109,24 +127,166 @@ impl Renderer {
             .expect(&format!("Failed to load font '{}'", display_path));
     }
 
-    pub fn render<M: Component>(&self, node: &Node<M>) {
+    pub fn render<M: Component>(&self, node: &mut Node<M>) {
         self.context.frame(
             (self.width, self.height),
             self.device_pixel_ratio,
             move |frame| {
-                let mut font_stack = Vec::new();
-                Self::render_draw(&frame, node as &dyn Drawable, &mut font_stack);
+                let bound = BoundingBox {
+                    min_x: 0.0,
+                    min_y: 0.0,
+                    max_x: self.width,
+                    max_y: self.height,
+                };
+                Self::render_recalc(&frame, node as &mut dyn Drawable, bound, None);
+                Self::render_draw(&frame, node as &dyn Drawable, None);
             }
         );
     }
 
-    fn render_draw<'a>(frame: &Frame, draw: &'a dyn Drawable, font_stack: &mut Vec<&'a Font>) {
+    pub fn render_recalc(frame: &Frame,
+                         draw: &mut dyn Drawable,
+                         parent_bound: BoundingBox,
+                         font: Option<&Font>) -> BoundingBox
+    {
+        let mut bound = parent_bound;
+
+        if let Some(shape) = draw.shape_mut() {
+            match shape {
+                Shape::Rect(ref mut r) => {
+                    r.x.set_by_pct(parent_bound.min_x);
+                    r.y.set_by_pct(parent_bound.min_y);
+                    r.width.set_by_pct(parent_bound.width());
+                    r.height.set_by_pct(parent_bound.height());
+
+                    bound = BoundingBox {
+                        min_x: r.x.val(),
+                        min_y: r.y.val(),
+                        max_x: r.width.val(),
+                        max_y: r.height.val(),
+                    };
+                },
+                Shape::Circle(ref mut c) => {
+                    c.cx.set_by_pct(parent_bound.min_x + parent_bound.width() / 2.0);
+                    c.cy.set_by_pct(parent_bound.min_y + parent_bound.height() / 2.0);
+                    c.r.set_by_pct(parent_bound.width().min(parent_bound.height()) / 2.0);
+
+                    let (cx, cy, r) = (c.cx.val(), c.cy.val(), c.r.val());
+                    bound = BoundingBox {
+                        min_x: cx - r,
+                        min_y: cy - r,
+                        max_x: cx + r,
+                        max_y: cy + r,
+                    };
+                },
+                Shape::Font(ref f) => {
+                    let font = f.clone();
+                    return Self::calc_inner_bound(frame, draw, bound, Some(&font));
+                },
+                Shape::Text(ref t) => {
+                    if let Some(font) = font {
+                        let nanovg_font = NanovgFont::find(frame.context(), font.name.as_str())
+                            .expect(&format!("Font '{}' not found", font.name));
+                        let text_options = Self::text_options(font);
+
+                        let text_bounds = frame.text_box_bounds(
+                            nanovg_font,
+                            (font.x.val(), font.y.val()),
+                            t,
+                            text_options,
+                        );
+
+                        bound = BoundingBox {
+                            min_x: text_bounds.min_x,
+                            min_y: text_bounds.min_y,
+                            max_x: text_bounds.max_x,
+                            max_y: text_bounds.max_y,
+                        };
+                    }
+                },
+                _ => (),
+            }
+        }
+
+        let inner_bound = Self::calc_inner_bound(frame, draw, bound, font);
+
+        if let Some(shape) = draw.shape_mut() {
+            match shape {
+                Shape::Rect(ref mut r) => {
+                    r.x.set_by_auto(inner_bound.min_x);
+                    r.y.set_by_auto(inner_bound.min_y);
+                    r.width.set_by_auto(inner_bound.width());
+                    r.height.set_by_auto(inner_bound.height());
+
+                    bound = BoundingBox {
+                        min_x: r.x.val(),
+                        min_y: r.y.val(),
+                        max_x: r.width.val(),
+                        max_y: r.height.val(),
+                    };
+                },
+                Shape::Circle(ref mut c) => {
+                    c.cx.set_by_auto(inner_bound.min_x + inner_bound.width() / 2.0);
+                    c.cy.set_by_auto(inner_bound.min_y + inner_bound.height() / 2.0);
+                    c.r.set_by_auto(inner_bound.width().max(inner_bound.height()) / 2.0);
+
+                    let (cx, cy, r) = (c.cx.val(), c.cy.val(), c.r.val());
+                    bound = BoundingBox {
+                        min_x: cx - r,
+                        min_y: cy - r,
+                        max_x: cx + r,
+                        max_y: cy + r,
+                    };
+                },
+                _ => (),
+            }
+        }
+        bound
+    }
+
+    fn calc_inner_bound(frame: &Frame,
+                        draw: &mut dyn Drawable,
+                        bound: BoundingBox,
+                        font: Option<&Font>) -> BoundingBox
+    {
+        let mut child_bounds = Vec::new();
+        if let Some(childs) = draw.childs_mut() {
+            for child in childs {
+                child_bounds.push(
+                    Self::render_recalc(frame, child, bound, font)
+                );
+            }
+        }
+
+        if child_bounds.is_empty() {
+            BoundingBox::default()
+        } else {
+            let mut inner_bound = child_bounds[0];
+            for bound in &child_bounds[1..] {
+                if bound.min_x < inner_bound.min_x {
+                    inner_bound.min_x = bound.min_x;
+                }
+                if bound.min_y < inner_bound.min_y {
+                    inner_bound.min_y = bound.min_y;
+                }
+                if bound.max_x > inner_bound.max_x {
+                    inner_bound.max_x = bound.max_x;
+                }
+                if bound.max_y > inner_bound.max_y {
+                    inner_bound.max_y = bound.max_y;
+                }
+            }
+            inner_bound
+        }
+    }
+
+    fn render_draw<'a>(frame: &Frame, draw: &'a dyn Drawable, mut font: Option<&'a Font>) {
         if let Some(shape) = draw.shape() {
             match shape {
                 Shape::Rect(ref r) => {
                     frame.path(
                         |path| {
-                            path.rect((r.x, r.y), (r.width, r.height));
+                            path.rect((r.x.val(), r.y.val()), (r.width.val(), r.height.val()));
                             if let Some(fill) = r.fill {
                                 path.fill(ToNanovgPaint(fill.paint), Default::default());
                             };
@@ -143,7 +303,7 @@ impl Renderer {
                 Shape::Circle(ref c) => {
                     frame.path(
                         |path| {
-                            path.circle((c.cx, c.cy), c.r);
+                            path.circle((c.cx.val(), c.cy.val()), c.r.val());
                             if let Some(fill) = c.fill {
                                 path.fill(ToNanovgPaint(fill.paint), Default::default());
                             };
@@ -238,60 +398,29 @@ impl Renderer {
                         Self::path_options(p.transform.as_ref()),
                     );
                 },
-                Shape::Group(ref _g) => {},
                 Shape::Font(ref f) => {
-                    font_stack.push(f);
-                    if let Some(childs) = draw.childs() {
-                        for child in childs {
-                            Self::render_draw(frame, child, font_stack);
-                        }
-                    }
-                    font_stack.pop();
-                    return;
+                    font = Some(f);
                 },
                 Shape::Text(ref t) => {
-                    if let Some(f) = font_stack.last() {
-                        let nanovg_font = NanovgFont::find(frame.context(), f.name.as_str())
-                            .expect(&format!("Font '{}' not found", f.name));
-                        let color = ToNanovgPaint::to_nanovg_color(
-                            f.fill.and_then(|fill| if let Paint::Color(color) = fill.paint {
-                                Some(color)
-                            } else {
-                                None
-                            }).unwrap_or_default()
-                        );
-                        let mut align = Alignment::new();
-                        align = match f.align.0 {
-                            AlignHor::Left => align.left(),
-                            AlignHor::Right => align.right(),
-                            AlignHor::Center => align.center(),
-                        };
-                        align = match f.align.1 {
-                            AlignVer::Bottom => align.bottom(),
-                            AlignVer::Middle => align.middle(),
-                            AlignVer::Baseline => align.baseline(),
-                            AlignVer::Top => align.top(),
-                        };
+                    if let Some(font) = font {
+                        let nanovg_font = NanovgFont::find(frame.context(), font.name.as_str())
+                            .expect(&format!("Font '{}' not found", font.name));
+                        let text_options = Self::text_options(font);
 
                         frame.text(
                             nanovg_font,
-                            (f.x, f.y),
+                            (font.x.val(), font.y.val()),
                             t,
-                            TextOptions {
-                                color,
-                                size: f.size,
-                                align,
-                                transform: Self::to_nanovg_transform(f.transform.as_ref()),
-                                ..Default::default()
-                            },
+                            text_options,
                         );
                     }
                 },
+                Shape::Group(ref _g) => {},
             }
         }
         if let Some(childs) = draw.childs() {
             for child in childs {
-                Self::render_draw(frame, child, font_stack);
+                Self::render_draw(frame, child, font);
             }
         }
     }
@@ -339,6 +468,36 @@ impl Renderer {
             line_cap,
             line_join,
             miter_limit: stroke.miter_limit,
+            ..Default::default()
+        }
+    }
+
+    fn text_options(font: &Font) -> TextOptions {
+        let color = ToNanovgPaint::to_nanovg_color(
+            font.fill.and_then(|fill| if let Paint::Color(color) = fill.paint {
+                Some(color)
+            } else {
+                None
+            }).unwrap_or_default()
+        );
+        let mut align = Alignment::new();
+        align = match font.align.0 {
+            AlignHor::Left => align.left(),
+            AlignHor::Right => align.right(),
+            AlignHor::Center => align.center(),
+        };
+        align = match font.align.1 {
+            AlignVer::Bottom => align.bottom(),
+            AlignVer::Middle => align.middle(),
+            AlignVer::Baseline => align.baseline(),
+            AlignVer::Top => align.top(),
+        };
+
+        TextOptions {
+            color,
+            size: font.size.val(),
+            align,
+            transform: Self::to_nanovg_transform(font.transform.as_ref()),
             ..Default::default()
         }
     }
