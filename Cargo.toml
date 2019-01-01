@@ -5,7 +5,7 @@ edition = "2018"
 
 [dependencies]
 nanovg = { version = "1.0", features = ["gl3"] }
-exgui = { path = "../exgui" }
+exgui = { git = "https://github.com/exgui/exgui.git" }
 
 [dev-dependencies]
 glutin = "0.13"
