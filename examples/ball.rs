@@ -56,13 +56,13 @@ impl Component for Ball {
 impl Viewable<Ball> for Ball {
     fn view(&self) -> Node<Self> {
         egml! {
-            <group translate = (50.0, 50.0), >
-                <rect x = 0.0, y = 0.0, width = 300.0, height = 300.0,
-                        fill = None, stroke = (Color::Black, 2.0, 0.5), >
-                    <circle cx = 150.0, cy = self.cy, r = 20.0,
+            <group translate = (50, 50), >
+                <rect x = 0, y = 0, width = 300, height = 300,
+                        fill = None, stroke = (Color::Black, 2, 0.5), >
+                    <circle cx = 150, cy = self.cy, r = 20,
                             fill = if self.normal { Color::Blue } else { Color::Red },
                             modifier = |this, model: Ball| {
-                                this.cy = model.cy;
+                                this.cy = model.cy.into();
                             },
                             onclick = |_| Msg::Toggle, />
                 </rect>
@@ -110,7 +110,7 @@ fn main() {
         render.width = width as f32;
         render.height = height as f32;
         render.device_pixel_ratio = gl_window.hidpi_factor();
-        render.render(comp.view_node::<Ball>());
+        render.render(comp.view_node_mut::<Ball>());
 
         gl_window.swap_buffers().unwrap();
 

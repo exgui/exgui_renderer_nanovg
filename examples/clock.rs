@@ -126,8 +126,8 @@ impl Viewable<Clock> for Clock {
         egml! {
             <group translate = (self.dial_center.0, self.dial_center.1), >
                 // Dial
-                <circle cx = 0.0, cy = 0.0, r = self.dial_radius,
-                    stroke = (silver, 3.0),
+                <circle cx = 0, cy = 0, r = self.dial_radius,
+                    stroke = (silver, 3),
                     fill = Color::RGB(0.2, 0.0, 0.8), />
 
                 // Hour/minute markers
@@ -139,7 +139,7 @@ impl Viewable<Clock> for Clock {
                         .map(|m| self.view_tick(m as f32, 3.0, 1.0)) }
 
                 // Date-string
-                <font name = "Roboto", x = 0.0, y = self.dial_radius * 0.7, size = 24.0,
+                <font name = "Roboto", x = 0, y = self.dial_radius * 0.7, size = 24,
                         align = (Center, Baseline), fill = silver, >
                     { format!("{:4}-{:02}-{:02}", self.year, self.month, self.day) }
                         .text.modifier = |this, clock_model: Clock| {
@@ -179,7 +179,7 @@ impl Viewable<Clock> for Clock {
                     }, />
 
                 // Boss
-                <circle cx = 0.0, cy = 0.0, r = boss_rad,
+                <circle cx = 0, cy = 0, r = boss_rad,
                     stroke = darkgray,
                     fill = Gradient::Radial {
                         center: (0.0, 0.0),
@@ -320,7 +320,7 @@ fn main() {
         render.width = width as f32;
         render.height = height as f32;
         render.device_pixel_ratio = gl_window.hidpi_factor();
-        render.render(clock.view_node::<Clock>());
+        render.render(clock.view_node_mut::<Clock>());
 
         gl_window.swap_buffers().unwrap();
 

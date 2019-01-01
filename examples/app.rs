@@ -27,10 +27,10 @@ impl Viewable<Model> for Model {
     fn view(&self) -> Node<Self> {
         let rect_fill = Color::Yellow;
         egml! {
-            <rect x = 40.0, y = 40.0, width = 50.0, height = 80.0, fill = rect_fill,
-                    stroke = (Color::Red, 2.0), >
+            <rect x = 40, y = 40, width = 50, height = 80,
+                    fill = rect_fill, stroke = (Color::Red, 2), >
                 <group>
-                    <circle cx = 120.0, cy = 120.0, r = 40.0, fill = Color::White, />
+                    <circle cx = 120, cy = 120, r = 40, fill = Color::White, />
                 </group>
             </rect>
         }
@@ -54,7 +54,7 @@ fn main() {
         gl::ClearColor(0.8, 0.8, 0.8, 1.0);
     }
 
-    let node = Model.view();
+    let mut node = Model.view();
     let mut render = Renderer::new();
 
     let mut running = true;
@@ -71,7 +71,7 @@ fn main() {
         render.width = width as f32;
         render.height = height as f32;
         render.device_pixel_ratio = gl_window.hidpi_factor();
-        render.render(&node);
+        render.render(&mut node);
 
         gl_window.swap_buffers().unwrap();
 

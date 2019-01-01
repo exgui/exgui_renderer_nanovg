@@ -41,16 +41,16 @@ impl Component for SmileModel {
 impl Viewable<SmileModel> for SmileModel {
     fn view(&self) -> Node<Self> {
         egml! {
-            <group translate = (50.0, 50.0), >
-                <rect x = 0.0, y = 0.0, width = 300.0, height = 300.0,
-                        fill = None, stroke = (Color::Black, 2.0, 0.5), >
-                    <group stroke = (Color::Black, 5.0), >
-                        <circle cx = 150.0, cy = 150.0, r = 100.0,
+            <group translate = (50, 50), >
+                <rect x = 0, y = 0, width = 300, height = 300,
+                        fill = None, stroke = (Color::Black, 2, 0.5), >
+                    <group stroke = (Color::Black, 5), >
+                        <circle cx = 150, cy = 150, r = 100,
                             fill = if self.normal_face { Color::Yellow } else { Color::Red },
                             onclick = |_| Msg::ToggleFace, />
                         <group fill = if self.normal_face { Color::Black } else { Color::White }, >
-                            <circle cx = 110.0, cy = 130.0, r = 15.0, />
-                            <circle cx = 190.0, cy = 130.0, r = 15.0, />
+                            <circle cx = 110, cy = 130, r = 15, />
+                            <circle cx = 190, cy = 130, r = 15, />
                             { self.view_mouth() }
                         </group>
                     </group>
@@ -114,7 +114,7 @@ fn main() {
         render.width = width as f32;
         render.height = height as f32;
         render.device_pixel_ratio = gl_window.hidpi_factor();
-        render.render(&smile_node);
+        render.render(&mut smile_node);
 
         gl_window.swap_buffers().unwrap();
 
