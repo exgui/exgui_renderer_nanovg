@@ -154,8 +154,12 @@ impl Renderer {
         if let Some(shape) = draw.shape_mut() {
             match shape {
                 Shape::Rect(ref mut r) => {
-                    r.x.set_by_pct(parent_bound.min_x);
-                    r.y.set_by_pct(parent_bound.min_y);
+                    if r.x.set_by_pct(parent_bound.width()) {
+                        r.x.0 += parent_bound.min_x;
+                    }
+                    if r.y.set_by_pct(parent_bound.height()) {
+                        r.y.0 += parent_bound.min_y;
+                    }
                     r.width.set_by_pct(parent_bound.width());
                     r.height.set_by_pct(parent_bound.height());
 
@@ -167,9 +171,13 @@ impl Renderer {
                     };
                 },
                 Shape::Circle(ref mut c) => {
-                    c.cx.set_by_pct(parent_bound.min_x + parent_bound.width() / 2.0);
-                    c.cy.set_by_pct(parent_bound.min_y + parent_bound.height() / 2.0);
-                    c.r.set_by_pct(parent_bound.width().min(parent_bound.height()) / 2.0);
+                    if c.cx.set_by_pct(parent_bound.width()) {
+                        c.cx.0 += parent_bound.min_x;
+                    }
+                    if c.cy.set_by_pct(parent_bound.height()) {
+                        c.cy.0 += parent_bound.min_y;
+                    }
+                    c.r.set_by_pct(parent_bound.width().min(parent_bound.height()));
 
                     let (cx, cy, r) = (c.cx.val(), c.cy.val(), c.r.val());
                     bound = BoundingBox {
@@ -179,7 +187,14 @@ impl Renderer {
                         max_y: cy + r,
                     };
                 },
-                Shape::Font(ref f) => {
+                Shape::Font(ref mut f) => {
+                    if f.x.set_by_pct(parent_bound.width()) {
+                        f.x.0 += parent_bound.min_x;
+                    }
+                    if f.y.set_by_pct(parent_bound.height()) {
+                        f.y.0 += parent_bound.min_y;
+                    }
+
                     let font = f.clone();
                     return Self::calc_inner_bound(frame, draw, bound, Some(&font));
                 },
@@ -187,14 +202,29 @@ impl Renderer {
                     if let Some(font) = font {
                         let nanovg_font = NanovgFont::find(frame.context(), font.name.as_str())
                             .expect(&format!("Font '{}' not found", font.name));
-                        let text_options = Self::text_options(font);
 
-                        let text_bounds = frame.text_box_bounds(
+                        let text_options = if let AlignHor::Center = font.align.0 {
+                            // Fix nanovg text_bounds bug for centered text
+                            let mut font = font.clone();
+                            font.align.0 = AlignHor::Left;
+                            Self::text_options(&font)
+                        } else {
+                            Self::text_options(font)
+                        };
+
+                        let mut text_bounds = frame.text_box_bounds(
                             nanovg_font,
                             (font.x.val(), font.y.val()),
                             t,
                             text_options,
                         );
+
+                        // Fix nanovg text_bounds bug for centered text
+                        if let AlignHor::Center = font.align.0 {
+                            let half_width = (text_bounds.max_x - text_bounds.min_x) / 2.0;
+                            text_bounds.min_x -= half_width;
+                            text_bounds.max_x -= half_width;
+                        }
 
                         bound = BoundingBox {
                             min_x: text_bounds.min_x,
