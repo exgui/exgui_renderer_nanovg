@@ -9,7 +9,7 @@ use nanovg::{
 };
 use exgui::{
     Real, Node, Component, Drawable, Shape, Paint, Color, Gradient, Stroke,
-    Font, AlignHor, AlignVer, Transform, LineCap, LineJoin
+    Text, AlignHor, AlignVer, Transform, LineCap, LineJoin
 };
 
 struct ToNanovgPaint(Paint);
@@ -147,7 +147,7 @@ impl Renderer {
     pub fn render_recalc(frame: &Frame,
                          draw: &mut dyn Drawable,
                          parent_bound: BoundingBox,
-                         font: Option<&Font>) -> BoundingBox
+                         text: Option<&Text>) -> BoundingBox
     {
         let mut bound = parent_bound;
 
@@ -187,40 +187,40 @@ impl Renderer {
                         max_y: cy + r,
                     };
                 },
-                Shape::Font(ref mut f) => {
-                    if f.x.set_by_pct(parent_bound.width()) {
-                        f.x.0 += parent_bound.min_x;
+                Shape::Text(ref mut t) => {
+                    if t.x.set_by_pct(parent_bound.width()) {
+                        t.x.0 += parent_bound.min_x;
                     }
-                    if f.y.set_by_pct(parent_bound.height()) {
-                        f.y.0 += parent_bound.min_y;
+                    if t.y.set_by_pct(parent_bound.height()) {
+                        t.y.0 += parent_bound.min_y;
                     }
 
-                    let font = f.clone();
-                    return Self::calc_inner_bound(frame, draw, bound, Some(&font));
+                    let text = t.clone();
+                    return Self::calc_inner_bound(frame, draw, bound, Some(&text));
                 },
-                Shape::Text(ref t) => {
-                    if let Some(font) = font {
-                        let nanovg_font = NanovgFont::find(frame.context(), font.name.as_str())
-                            .expect(&format!("Font '{}' not found", font.name));
+                Shape::Word(ref w) => {
+                    if let Some(text) = text {
+                        let nanovg_font = NanovgFont::find(frame.context(), text.font_name.as_str())
+                            .expect(&format!("Font '{}' not found", text.font_name));
 
-                        let text_options = if let AlignHor::Center = font.align.0 {
+                        let text_options = if let AlignHor::Center = text.align.0 {
                             // Fix nanovg text_bounds bug for centered text
-                            let mut font = font.clone();
-                            font.align.0 = AlignHor::Left;
-                            Self::text_options(&font)
+                            let mut text = text.clone();
+                            text.align.0 = AlignHor::Left;
+                            Self::text_options(&text)
                         } else {
-                            Self::text_options(font)
+                            Self::text_options(text)
                         };
 
                         let mut text_bounds = frame.text_box_bounds(
                             nanovg_font,
-                            (font.x.val(), font.y.val()),
-                            t,
+                            (text.x.val(), text.y.val()),
+                            w,
                             text_options,
                         );
 
                         // Fix nanovg text_bounds bug for centered text
-                        if let AlignHor::Center = font.align.0 {
+                        if let AlignHor::Center = text.align.0 {
                             let half_width = (text_bounds.max_x - text_bounds.min_x) / 2.0;
                             text_bounds.min_x -= half_width;
                             text_bounds.max_x -= half_width;
@@ -238,7 +238,7 @@ impl Renderer {
             }
         }
 
-        let inner_bound = Self::calc_inner_bound(frame, draw, bound, font);
+        let inner_bound = Self::calc_inner_bound(frame, draw, bound, text);
 
         if let Some(shape) = draw.shape_mut() {
             match shape {
@@ -277,13 +277,13 @@ impl Renderer {
     fn calc_inner_bound(frame: &Frame,
                         draw: &mut dyn Drawable,
                         bound: BoundingBox,
-                        font: Option<&Font>) -> BoundingBox
+                        text: Option<&Text>) -> BoundingBox
     {
         let mut child_bounds = Vec::new();
         if let Some(childs) = draw.childs_mut() {
             for child in childs {
                 child_bounds.push(
-                    Self::render_recalc(frame, child, bound, font)
+                    Self::render_recalc(frame, child, bound, text)
                 );
             }
         }
@@ -310,7 +310,7 @@ impl Renderer {
         }
     }
 
-    fn render_draw<'a>(frame: &Frame, draw: &'a dyn Drawable, mut font: Option<&'a Font>) {
+    fn render_draw<'a>(frame: &Frame, draw: &'a dyn Drawable, mut text: Option<&'a Text>) {
         if let Some(shape) = draw.shape() {
             match shape {
                 Shape::Rect(ref r) => {
@@ -428,19 +428,19 @@ impl Renderer {
                         Self::path_options(p.transform.as_ref()),
                     );
                 },
-                Shape::Font(ref f) => {
-                    font = Some(f);
-                },
                 Shape::Text(ref t) => {
-                    if let Some(font) = font {
-                        let nanovg_font = NanovgFont::find(frame.context(), font.name.as_str())
-                            .expect(&format!("Font '{}' not found", font.name));
-                        let text_options = Self::text_options(font);
+                    text = Some(t);
+                },
+                Shape::Word(ref w) => {
+                    if let Some(text) = text {
+                        let nanovg_font = NanovgFont::find(frame.context(), text.font_name.as_str())
+                            .expect(&format!("Font '{}' not found", text.font_name));
+                        let text_options = Self::text_options(text);
 
                         frame.text(
                             nanovg_font,
-                            (font.x.val(), font.y.val()),
-                            t,
+                            (text.x.val(), text.y.val()),
+                            w,
                             text_options,
                         );
                     }
@@ -450,7 +450,7 @@ impl Renderer {
         }
         if let Some(childs) = draw.childs() {
             for child in childs {
-                Self::render_draw(frame, child, font);
+                Self::render_draw(frame, child, text);
             }
         }
     }
@@ -502,21 +502,21 @@ impl Renderer {
         }
     }
 
-    fn text_options(font: &Font) -> TextOptions {
+    fn text_options(text: &Text) -> TextOptions {
         let color = ToNanovgPaint::to_nanovg_color(
-            font.fill.and_then(|fill| if let Paint::Color(color) = fill.paint {
+            text.fill.and_then(|fill| if let Paint::Color(color) = fill.paint {
                 Some(color)
             } else {
                 None
             }).unwrap_or_default()
         );
         let mut align = Alignment::new();
-        align = match font.align.0 {
+        align = match text.align.0 {
             AlignHor::Left => align.left(),
             AlignHor::Right => align.right(),
             AlignHor::Center => align.center(),
         };
-        align = match font.align.1 {
+        align = match text.align.1 {
             AlignVer::Bottom => align.bottom(),
             AlignVer::Middle => align.middle(),
             AlignVer::Baseline => align.baseline(),
@@ -525,9 +525,9 @@ impl Renderer {
 
         TextOptions {
             color,
-            size: font.size.val(),
+            size: text.font_size.val(),
             align,
-            transform: Self::to_nanovg_transform(font.transform.as_ref()),
+            transform: Self::to_nanovg_transform(text.transform.as_ref()),
             ..Default::default()
         }
     }

@@ -139,17 +139,17 @@ impl Viewable<Clock> for Clock {
                         .map(|m| self.view_tick(m as f32, 3.0, 1.0)) }
 
                 // Date-string
-                <font name = "Roboto", x = 0, y = self.dial_radius * 0.7, size = 24,
+                <text x = 0, y = self.dial_radius * 0.7, font_name = "Roboto", font_size = 24,
                         align = (Center, Baseline), fill = silver, >
                     { format!("{:4}-{:02}-{:02}", self.year, self.month, self.day) }
-                        .text.modifier = |this, clock_model: Clock| {
+                        .word.modifier = |this, clock_model: Clock| {
                             if clock_model.day_changed {
                                 this.content = format!(
                                     "{:4}-{:02}-{:02}", clock_model.year, clock_model.month, clock_model.day
                                 );
                             }
                         },
-                </font>
+                </text>
 
                 // Second hand
                 <Hand: with second_hand_props,
@@ -213,10 +213,10 @@ impl Clock {
         let silver = Color::RGB(196.0 / 255.0,199.0 / 255.0,206.0 / 255.0);
 
         egml! {
-            <font name = "Roboto", x = x, y = y, size = font_size,
+            <text x = x, y = y, font_name = "Roboto", font_size = font_size,
                     align = (Center, Middle), fill = silver, >
                 { format!("{}", n) }
-            </font>
+            </text>
         }
     }
 
