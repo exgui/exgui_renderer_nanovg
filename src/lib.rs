@@ -166,8 +166,8 @@ impl Renderer {
                     bound = BoundingBox {
                         min_x: r.x.val(),
                         min_y: r.y.val(),
-                        max_x: r.width.val(),
-                        max_y: r.height.val(),
+                        max_x: r.x.val() + r.width.val(),
+                        max_y: r.y.val() + r.height.val(),
                     };
                 },
                 Shape::Circle(ref mut c) => {
@@ -251,8 +251,8 @@ impl Renderer {
                     bound = BoundingBox {
                         min_x: r.x.val(),
                         min_y: r.y.val(),
-                        max_x: r.width.val(),
-                        max_y: r.height.val(),
+                        max_x: r.x.val() + r.width.val(),
+                        max_y: r.y.val() + r.height.val(),
                     };
                 },
                 Shape::Circle(ref mut c) => {
