@@ -15,6 +15,7 @@ struct Ball {
     cy: f32,
 }
 
+#[derive(Clone)]
 pub enum Msg {
     Toggle,
     PosUpdate,
@@ -105,7 +106,7 @@ fn main() {
             );
         }
 
-        comp.send::<Ball>(Msg::PosUpdate);
+        comp.send_self::<Ball>(Msg::PosUpdate);
 
         render.width = width as f32;
         render.height = height as f32;

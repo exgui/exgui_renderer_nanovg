@@ -12,6 +12,7 @@ struct SmileModel {
     normal_face: bool,
 }
 
+#[derive(Clone)]
 pub enum Msg {
     ToggleFace,
     Nope,
@@ -127,16 +128,8 @@ fn main() {
                         mouse_controller.update_pos(x_pos, y_pos);
                     },
                     glutin::WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
-                        match mouse_controller.left_pressed(&mut smile, &mut smile_node) {
-                            ChangeView::Rebuild => {
-                                smile_node = smile.view();
-                                smile_node.resolve(None);
-                            },
-                            ChangeView::Modify => {
-                                smile_node.modify(&smile);
-                            },
-                            ChangeView::None => (),
-                        }
+                        let msgs = mouse_controller.left_pressed_node(&mut smile_node);
+                        smile_node.send_self_batch(&mut smile, msgs);
                     },
                     _ => (),
                 }

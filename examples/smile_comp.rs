@@ -13,6 +13,7 @@ struct Smile {
     normal_face: bool,
 }
 
+#[derive(Clone)]
 pub enum Msg {
     ToggleFace,
 }
