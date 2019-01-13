@@ -6,8 +6,10 @@ extern crate exgui_renderer_nanovg as renderer;
 
 use glutin::{GlContext, ElementState, MouseButton};
 use renderer::Renderer;
-use exgui::{Component, Viewable, Drawable, ChangeView, Node, Comp, Finger, Color,
-            controller::MouseInput, Pct, Real, RealValue};
+use exgui::{
+    Component, Viewable, Shapeable, ChangeView, Node, Comp, Finger, GetError, Color,
+    controller::MouseInput, Pct, Real, RealValue
+};
 
 struct Model {
     normal: bool,
@@ -78,6 +80,7 @@ enum BallMsg {
     PosUpdate(RealValue, RealValue),
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Copy, Clone, PartialEq)]
 enum BallOrientation {
     Horizontal,
@@ -191,13 +194,12 @@ fn main() {
             );
         }
 
-        let circle = comp.view_node::<Model>().unit()
-            .and_then(|u| u.childs[0].comp())
-            .and_then(|c| c.view_node::<Ball>().shape())
-            .and_then(|s| s.circle())
+        let circle = comp.get_comp::<Model>(Finger::Id("ball"))
+            .and_then(|ball| ball.get_prim::<Ball>(Finger::Root))
+            .and_then(|prim| prim.circle().ok_or(GetError::NotFound))
             .expect("Can't get circle shape in Ball");
         let last_pos = (circle.cx, circle.cy);
-        comp.send::<Model, Ball>(Finger::Location(&[0]), BallMsg::PosUpdate(last_pos.0, last_pos.1));
+        comp.send::<Model, Ball>(Finger::Id("ball"), BallMsg::PosUpdate(last_pos.0, last_pos.1));
 
         render.width = width as f32;
         render.height = height as f32;
