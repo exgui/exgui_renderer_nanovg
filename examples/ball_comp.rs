@@ -194,7 +194,7 @@ fn main() {
             );
         }
 
-        let circle = comp.get_comp::<Model>(Finger::Id("ball"))
+        let circle = comp.get_comp(Finger::Id("ball"))
             .and_then(|ball| ball.get_prim::<Ball>(Finger::Root))
             .and_then(|prim| prim.circle().ok_or(GetError::NotFound))
             .expect("Can't get circle shape in Ball");

@@ -106,7 +106,7 @@ fn main() {
             );
         }
 
-        comp.send_self::<Ball>(Msg::PosUpdate);
+        comp.send_self(Msg::PosUpdate);
 
         render.width = width as f32;
         render.height = height as f32;

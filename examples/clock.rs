@@ -157,7 +157,7 @@ impl Viewable<Clock> for Clock {
                     modifier = |this, clock_model: Clock| {
                         let hand_theta = this.model::<Hand>().theta;
                         if (hand_theta - clock_model.second_angle).abs() > 0.00001 {
-                            this.send_self::<Hand>(HandMsg::ChangeTheta(clock_model.second_angle));
+                            this.send_self(HandMsg::ChangeTheta(clock_model.second_angle));
                         }
                     }, />
 
@@ -166,7 +166,7 @@ impl Viewable<Clock> for Clock {
                     modifier = |this, clock_model: Clock| {
                         let hand_theta = this.model::<Hand>().theta;
                         if (hand_theta - clock_model.minute_angle).abs() > 0.00001 {
-                            this.send_self::<Hand>(HandMsg::ChangeTheta(clock_model.minute_angle));
+                            this.send_self(HandMsg::ChangeTheta(clock_model.minute_angle));
                         }
                     }, />
 
@@ -175,7 +175,7 @@ impl Viewable<Clock> for Clock {
                     modifier = |this, clock_model: Clock| {
                         let hand_theta = this.model::<Hand>().theta;
                         if (hand_theta - clock_model.hour_angle).abs() > 0.00001 {
-                            this.send_self::<Hand>(HandMsg::ChangeTheta(clock_model.hour_angle));
+                            this.send_self(HandMsg::ChangeTheta(clock_model.hour_angle));
                         }
                     }, />
 
@@ -315,9 +315,9 @@ fn main() {
                 gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT,
             );
         }
-        clock.send_self::<Clock>(Msg::ResizeWindow(width, height));
+        clock.send_self(Msg::ResizeWindow(width, height));
 
-        clock.send_self::<Clock>(Msg::Tick);
+        clock.send_self(Msg::Tick);
 
         render.width = width as f32;
         render.height = height as f32;
