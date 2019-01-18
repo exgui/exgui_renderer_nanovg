@@ -199,7 +199,8 @@ fn main() {
             .and_then(|prim| prim.circle().ok_or(GetError::NotFound))
             .expect("Can't get circle shape in Ball");
         let last_pos = (circle.cx, circle.cy);
-        comp.send::<Model, Ball>(Finger::Id("ball"), BallMsg::PosUpdate(last_pos.0, last_pos.1));
+        comp.send(Finger::Id("ball"), BallMsg::PosUpdate(last_pos.0, last_pos.1))
+            .expect("Invalid finger");
 
         render.width = width as f32;
         render.height = height as f32;
