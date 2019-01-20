@@ -8,8 +8,7 @@ nanovg = { version = "1.0", features = ["gl3"] }
 exgui = { git = "https://github.com/exgui/exgui.git" }
 
 [dev-dependencies]
-glutin = "0.13"
-gl = "0.10"
+exgui_controller_glutin = { git = "https://github.com/exgui/exgui_controller_glutin.git" }
 chrono = "0.4"
 rand = "0.4"
 lazy_static = "1.0"
