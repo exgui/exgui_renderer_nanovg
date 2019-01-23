@@ -1,5 +1,5 @@
 use exgui_renderer_nanovg::Renderer;
-use exgui_controller_glutin::{App, glutin};
+use exgui_controller_glutin::{App, AppState, glutin};
 use exgui::{
     egml, Component, Viewable, Shapeable, ChangeView, Node, Comp, Finger, GetError, Color,
     Pct, Real, RealValue
@@ -185,5 +185,7 @@ fn main() {
         render.height = height as f32;
         render.device_pixel_ratio = app.window().hidpi_factor();
         render.render(comp.view_node_mut::<Model>());
+
+        AppState::Continue
     }).unwrap();
 }
