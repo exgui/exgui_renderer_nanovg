@@ -1,4 +1,4 @@
-use exgui_renderer_nanovg::Renderer;
+use exgui_renderer_nanovg::NanovgRenderer;
 use exgui_controller_glutin::{App, AppState, glutin};
 use exgui::{
     egml, Component, Viewable, Shapeable, ChangeView, Node, Comp, Finger, GetError, Color,
@@ -162,14 +162,14 @@ fn main() {
         glutin::ContextBuilder::new()
             .with_vsync(true)
             .with_multisampling(4)
-            .with_srgb(true)
+            .with_srgb(true),
+        NanovgRenderer::default(),
     ).unwrap();
 
     app.init().unwrap();
 
     let mut comp = Comp::new::<Model>(());
     comp.resolve(None);
-    let mut render = Renderer::new();
 
     app.run_proc(&mut comp, |app, comp| {
         let circle = comp.get_comp(Finger::Id("ball"))
@@ -180,11 +180,8 @@ fn main() {
         comp.send(Finger::Id("ball"), BallMsg::PosUpdate(last_pos.0, last_pos.1))
             .expect("Invalid finger");
 
-        let (width, height) = app.dimensions();
-        render.width = width as f32;
-        render.height = height as f32;
-        render.device_pixel_ratio = app.window().hidpi_factor();
-        render.render(comp.view_node_mut::<Model>());
+        let (dims, hdpi) = (app.dimensions(), app.window().hidpi_factor());
+        app.renderer_mut().set_dimensions(dims, hdpi);
 
         AppState::Continue
     }).unwrap();

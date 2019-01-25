@@ -1,12 +1,6 @@
-extern crate glutin;
-extern crate gl;
-#[macro_use]
-extern crate exgui;
-extern crate exgui_renderer_nanovg as renderer;
-
-use glutin::{GlContext, ElementState, MouseButton};
-use renderer::Renderer;
-use exgui::{Component, Viewable, ChangeView, Node, Comp, Color, AlignHor::*, AlignVer::*, controller::MouseInput};
+use exgui_renderer_nanovg::NanovgRenderer;
+use exgui_controller_glutin::{App, AppState, glutin};
+use exgui::{egml, Component, Viewable, ChangeView, Node, Comp, Color, AlignHor::*, AlignVer::*};
 
 #[derive(Debug)]
 struct Model;
@@ -40,62 +34,26 @@ impl Viewable<Model> for Model {
 }
 
 fn main() {
-    let mut events_loop = glutin::EventsLoop::new();
-    let mut mouse_controller = MouseInput::new();
-    let window = glutin::WindowBuilder::new()
-        .with_title("ExGUI auto size")
-        .with_dimensions(480, 480);
-    let context = glutin::ContextBuilder::new()
-        .with_vsync(true)
-        .with_multisampling(8)
-        .with_srgb(true);
-    let gl_window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
+    let mut app = App::new(
+        glutin::WindowBuilder::new()
+            .with_title("ExGUI auto size")
+            .with_dimensions(480, 480),
+        glutin::ContextBuilder::new()
+            .with_vsync(true)
+            .with_multisampling(8)
+            .with_srgb(true),
+        NanovgRenderer::default()
+    ).unwrap();
 
-    unsafe {
-        gl_window.make_current().unwrap();
-        gl::load_with(|symbol| gl_window.get_proc_address(symbol) as *const _);
-        gl::ClearColor(0.8, 0.8, 0.8, 1.0);
-    }
+    app.init().unwrap();
+    app.renderer_mut().load_font("Roboto", "resources/Roboto-Regular.ttf").unwrap();
 
     let mut comp = Comp::new::<Model>(());
     comp.resolve(None);
 
-    let mut render = Renderer::new();
-    render.load_font("Roboto", "resources/Roboto-Regular.ttf");
-
-    let mut running = true;
-    while running {
-        let (width, height) = gl_window.get_inner_size().unwrap();
-        let (width, height) = (width as i32, height as i32);
-        unsafe {
-            gl::Viewport(0, 0, width, height);
-            gl::Clear(
-                gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT,
-            );
-        }
-
-        render.width = width as f32;
-        render.height = height as f32;
-        render.device_pixel_ratio = gl_window.hidpi_factor();
-        render.render(comp.view_node_mut::<Model>());
-
-        gl_window.swap_buffers().unwrap();
-
-        events_loop.poll_events(|event| match event {
-            glutin::Event::WindowEvent { event, .. } => {
-                match event {
-                    glutin::WindowEvent::Closed => running = false,
-                    glutin::WindowEvent::Resized(w, h) => gl_window.resize(w, h),
-                    glutin::WindowEvent::CursorMoved { position: (x_pos, y_pos), .. } => {
-                        mouse_controller.update_pos(x_pos, y_pos);
-                    },
-                    glutin::WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
-                        mouse_controller.left_pressed_comp(&mut comp);
-                    },
-                    _ => (),
-                }
-            }
-            _ => (),
-        });
-    }
+    app.run_proc(&mut comp, |app, _| {
+        let (dims, hdpi) = (app.dimensions(), app.window().hidpi_factor());
+        app.renderer_mut().set_dimensions(dims, hdpi);
+        AppState::Continue
+    }).unwrap();
 }
