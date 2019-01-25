@@ -3,14 +3,16 @@ extern crate exgui;
 
 use std::path::Path;
 use nanovg::{
-    Context, ContextBuilder, Font as NanovgFont, Frame, Color as NanovgColor, Gradient as NanovgGradient,
-    Paint as NanovgPaint, StrokeOptions, PathOptions, TextOptions, Alignment,
+    Context, ContextBuilder, Font as NanovgFont, CreateFontError, Frame,
+    Color as NanovgColor, Gradient as NanovgGradient, Paint as NanovgPaint,
+    StrokeOptions, PathOptions, TextOptions, Alignment,
     LineCap as NanovgLineCap, LineJoin as NanovgLineJoin, Transform as NanovgTransform,
 };
 use exgui::{
-    Real, Node, Component, Drawable, Shape, Paint, Color, Gradient, Stroke,
+    Real, Drawable, Shape, Paint, Color, Gradient, Stroke,
     Text, AlignHor, AlignVer, Transform, LineCap, LineJoin
 };
+use exgui::renderer::Renderer;
 
 struct ToNanovgPaint(Paint);
 
@@ -78,27 +80,61 @@ impl BoundingBox {
     }
 }
 
-pub struct Renderer {
-    pub context: Context,
+#[derive(Debug)]
+pub enum NanovgRendererError {
+    ContextIsNotInit,
+    InitNanovgContextFailed,
+    CreateFontError(CreateFontError, String),
+}
+
+#[derive(Debug, Default)]
+pub struct NanovgRenderer {
+    pub context: Option<Context>,
     pub width: f32,
     pub height: f32,
     pub device_pixel_ratio: f32,
 }
 
-impl Renderer {
-    pub fn new() -> Self {
-        let context = ContextBuilder::new()
-            .stencil_strokes()
-            .build()
-            .expect("Initialization of NanoVG context failed!");
+impl Renderer for NanovgRenderer {
+    type Error = NanovgRendererError;
 
-        let renderer = Self::new_with_context(context);
-        renderer
+    fn init(&mut self) -> Result<(), Self::Error> {
+        if self.context.is_none() {
+            let context = ContextBuilder::new()
+                .stencil_strokes()
+                .build()
+                .map_err(|_| NanovgRendererError::InitNanovgContextFailed)?;
+            self.context = Some(context);
+        }
+        Ok(())
     }
 
+    fn render(&self, node: &mut dyn Drawable) -> Result<(), Self::Error> {
+        self.context
+            .as_ref()
+            .ok_or(NanovgRendererError::ContextIsNotInit)?
+            .frame(
+                (self.width, self.height),
+                self.device_pixel_ratio,
+                move |frame| {
+                    let bound = BoundingBox {
+                        min_x: 0.0,
+                        min_y: 0.0,
+                        max_x: self.width,
+                        max_y: self.height,
+                    };
+                    Self::render_recalc(&frame, node, bound, None);
+                    Self::render_draw(&frame, node, None);
+                }
+            );
+        Ok(())
+    }
+}
+
+impl NanovgRenderer {
     pub fn new_with_context(context: Context) -> Self {
-        Renderer {
-            context,
+        Self {
+            context: Some(context),
             width: 0.0,
             height: 0.0,
             device_pixel_ratio: 0.0,
@@ -120,28 +156,25 @@ impl Renderer {
         self
     }
 
-    pub fn load_font<S: Into<String>, P: AsRef<Path>>(&mut self, name: S, path: P) {
-        let name = name.into();
-        let display_path = path.as_ref().display();
-        NanovgFont::from_file(&self.context, name.as_str(), path.as_ref())
-            .expect(&format!("Failed to load font '{}'", display_path));
+    pub fn set_dimensions(&mut self, (width, height): (u32, u32), device_pixel_ratio: f32) {
+        self.width = width as f32;
+        self.height = height as f32;
+        self.device_pixel_ratio = device_pixel_ratio;
     }
 
-    pub fn render<M: Component>(&self, node: &mut Node<M>) {
-        self.context.frame(
-            (self.width, self.height),
-            self.device_pixel_ratio,
-            move |frame| {
-                let bound = BoundingBox {
-                    min_x: 0.0,
-                    min_y: 0.0,
-                    max_x: self.width,
-                    max_y: self.height,
-                };
-                Self::render_recalc(&frame, node as &mut dyn Drawable, bound, None);
-                Self::render_draw(&frame, node as &dyn Drawable, None);
-            }
-        );
+    pub fn load_font<S, P>(&mut self, name: S, path: P) -> Result<(), <Self as Renderer>::Error>
+    where
+        S: Into<String>,
+        P: AsRef<Path>,
+    {
+        let name = name.into();
+        let display_path = path.as_ref().display();
+        NanovgFont::from_file(
+            self.context.as_ref().ok_or(NanovgRendererError::ContextIsNotInit)?,
+            name.as_str(),
+            path.as_ref()
+        ).map_err(|e| NanovgRendererError::CreateFontError(e, format!("{}", display_path)))?;
+        Ok(())
     }
 
     pub fn render_recalc(frame: &Frame,
