@@ -1,7 +1,7 @@
 use exgui_renderer_nanovg::NanovgRenderer;
 use exgui_controller_glutin::{App, AppState, glutin};
 use exgui::{
-    egml, Component, Viewable, Shapeable, ChangeView, Node, Comp, Finger, GetError, Color,
+    egml, Component, Shapeable, ChangeView, Node, Comp, Finger, GetError, Color,
     Pct, Real, RealValue
 };
 
@@ -33,9 +33,7 @@ impl Component for Model {
             _ => ChangeView::None,
         }
     }
-}
 
-impl Viewable<Model> for Model {
     fn view(&self) -> Node<Self> {
         egml! {
             <rect x = Pct(5), y = Pct(5), width = Pct(90), height = Pct(90),
@@ -136,9 +134,7 @@ impl Component for Ball {
             },
         }
     }
-}
 
-impl Viewable<Ball> for Ball {
     fn view(&self) -> Node<Self> {
         egml! {
             <circle cx = self.point_pct, cy = self.point_pct, r = self.radius,

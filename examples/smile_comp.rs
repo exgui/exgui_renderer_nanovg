@@ -1,6 +1,6 @@
 use exgui_renderer_nanovg::NanovgRenderer;
 use exgui_controller_glutin::{App, AppState, glutin};
-use exgui::{egml, Component, Viewable, ChangeView, Node, Comp, Color, Stroke, LineJoin, PathCommand::*};
+use exgui::{egml, Component, ChangeView, Node, Comp, Color, Stroke, LineJoin, PathCommand::*};
 
 #[derive(Debug)]
 struct Smile {
@@ -30,9 +30,7 @@ impl Component for Smile {
             }
         }
     }
-}
 
-impl Viewable<Smile> for Smile {
     fn view(&self) -> Node<Self> {
         egml! {
             <group stroke = (Color::Black, 5), >
@@ -79,9 +77,7 @@ impl Component for Model {
     fn update(&mut self, _msg: Self::Message) -> ChangeView {
         ChangeView::None
     }
-}
 
-impl Viewable<Model> for Model {
     fn view(&self) -> Node<Self> {
         egml! {
             <group translate = (50, 50), >

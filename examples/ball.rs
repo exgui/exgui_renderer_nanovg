@@ -1,6 +1,6 @@
 use exgui_renderer_nanovg::NanovgRenderer;
 use exgui_controller_glutin::{App, AppState, glutin};
-use exgui::{egml, Component, Viewable, ChangeView, Node, Comp, Color};
+use exgui::{egml, Component, ChangeView, Node, Comp, Color};
 
 #[derive(Debug)]
 struct Ball {
@@ -46,9 +46,7 @@ impl Component for Ball {
             },
         }
     }
-}
 
-impl Viewable<Ball> for Ball {
     fn view(&self) -> Node<Self> {
         egml! {
             <group translate = (50, 50), >

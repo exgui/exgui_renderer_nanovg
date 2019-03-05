@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 use exgui_renderer_nanovg::NanovgRenderer;
 use exgui_controller_glutin::{App, AppState, glutin};
 use exgui::{
-    egml, Component, Viewable, ChangeView, Node, Comp, Color, Gradient, AlignHor::*, AlignVer::*,
+    egml, Component, ChangeView, Node, Comp, Color, Gradient, AlignHor::*, AlignVer::*,
     PathCommand::*, Transform
 };
 use chrono::{DateTime, Local, Timelike, Datelike};
@@ -91,9 +91,7 @@ impl Component for Clock {
             },
         }
     }
-}
 
-impl Viewable<Clock> for Clock {
     fn view(&self) -> Node<Self> {
         let second_hand_len = self.dial_radius * 0.9;
         let second_hand_props = HandProperties {
@@ -261,9 +259,7 @@ impl Component for Hand {
             }
         }
     }
-}
 
-impl Viewable<Hand> for Hand {
     fn view(&self) -> Node<Hand> {
         egml! {
             <path cmd = vec![Move([0.0, 0.0]), Line([0.0, -self.props.length]), Close],

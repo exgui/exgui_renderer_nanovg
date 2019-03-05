@@ -1,6 +1,6 @@
 use exgui_renderer_nanovg::NanovgRenderer;
 use exgui_controller_glutin::{App, AppState, glutin};
-use exgui::{egml, Component, Viewable, ChangeView, Node, Comp, Color};
+use exgui::{egml, Component, ChangeView, Node, Comp, Color};
 
 struct Model;
 
@@ -15,9 +15,7 @@ impl Component for Model {
     fn update(&mut self, _msg: Self::Message) -> ChangeView {
         unimplemented!()
     }
-}
 
-impl Viewable<Model> for Model {
     fn view(&self) -> Node<Self> {
         let rect_fill = Color::Yellow;
         egml! {

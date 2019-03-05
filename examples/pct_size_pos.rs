@@ -1,6 +1,6 @@
 use exgui_renderer_nanovg::NanovgRenderer;
 use exgui_controller_glutin::{App, AppState, glutin};
-use exgui::{egml, Pct, Component, Viewable, ChangeView, Node, Comp, Color, AlignHor::*, AlignVer::*};
+use exgui::{egml, Pct, Component, ChangeView, Node, Comp, Color, AlignHor::*, AlignVer::*};
 
 #[derive(Debug)]
 struct Model;
@@ -16,9 +16,7 @@ impl Component for Model {
     fn update(&mut self, _msg: Self::Message) -> ChangeView {
         ChangeView::None
     }
-}
 
-impl Viewable<Model> for Model {
     fn view(&self) -> Node<Self> {
         egml! {
             <rect x = Pct(5), y = Pct(5), width = Pct(90), height = Pct(90), stroke = (Color::Blue, 5), >
