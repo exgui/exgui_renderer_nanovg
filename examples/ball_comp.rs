@@ -1,8 +1,8 @@
 use exgui_renderer_nanovg::NanovgRenderer;
 use exgui_controller_glutin::{App, AppState, glutin};
 use exgui::{
-    egml, Component, Shapeable, ChangeView, Node, Comp, Finger, GetError, Color,
-    Pct, Real, RealValue
+    egml, Component, Shapeable, ChangeView, Node, Comp, Finger, Color,
+    Pct, Real
 };
 
 struct Model {
@@ -62,14 +62,14 @@ struct Ball {
     normal: bool,
     dir: i32,
     point_pct: Pct<Real>,
-    old_pos_px: Option<Real>,
+    penult_pos_px: Option<Real>,
     radius: Real,
 }
 
 #[derive(Copy, Clone)]
 enum BallMsg {
     Toggle,
-    PosUpdate(RealValue, RealValue),
+    PosUpdate,
 }
 
 #[allow(dead_code)]
@@ -100,37 +100,44 @@ impl Component for Ball {
             normal: true,
             dir: 1,
             point_pct: 50.into(),
-            old_pos_px: None,
+            penult_pos_px: None,
             radius: 20.0,
         }
     }
 
-    fn update(&mut self, msg: Self::Message) -> ChangeView {
+    fn update_with_view(&mut self, view: Option<&Node<Self>>, msg: Self::Message) -> ChangeView {
         match msg {
             BallMsg::Toggle => {
                 self.normal = !self.normal;
                 ChangeView::None
             },
-            BallMsg::PosUpdate(last_x, last_y) => {
-                let last_pos = match self.orientation {
-                    BallOrientation::Horizontal => last_x.0,
-                    BallOrientation::Vertical => last_y.0,
-                };
-                let step_pct = 0.5;
-
-                if let Some(old_pos_px) = self.old_pos_px {
-                    let radius_pct = self.radius / ((old_pos_px - last_pos).abs() / step_pct);
-
-                    if self.point_pct <= radius_pct.into() && self.dir < 0 {
-                        self.dir = 1;
-                    } else if self.point_pct >= (100.0 - radius_pct).into() && self.dir > 0 {
-                        self.dir = -1;
+            BallMsg::PosUpdate => {
+                if let Some(circle) = view
+                    .and_then(|view| view.prim())
+                    .and_then(|prim| prim.circle())
+                {
+                    let last_pos = match self.orientation {
+                        BallOrientation::Horizontal => circle.cx.0,
+                        BallOrientation::Vertical => circle.cy.0,
                     };
-                }
-                self.old_pos_px = Some(last_pos);
+                    let step_pct = 0.5;
 
-                self.point_pct += Pct(self.dir as Real * step_pct);
-                ChangeView::Modify
+                    if let Some(penult_pos_px) = self.penult_pos_px {
+                        let radius_pct = self.radius / ((penult_pos_px - last_pos).abs() / step_pct);
+
+                        if self.point_pct <= radius_pct.into() && self.dir < 0 {
+                            self.dir = 1;
+                        } else if self.point_pct >= (100.0 - radius_pct).into() && self.dir > 0 {
+                            self.dir = -1;
+                        };
+                    }
+                    self.penult_pos_px = Some(last_pos);
+
+                    self.point_pct += Pct(self.dir as Real * step_pct);
+                    ChangeView::Modify
+                } else {
+                    ChangeView::None
+                }
             },
         }
     }
@@ -168,12 +175,7 @@ fn main() {
     comp.resolve(None);
 
     app.run_proc(&mut comp, |app, comp| {
-        let circle = comp.get_comp(Finger::Id("ball"))
-            .and_then(|ball| ball.get_prim::<Ball>(Finger::Root))
-            .and_then(|prim| prim.circle().ok_or(GetError::NotFound))
-            .expect("Can't get circle shape in Ball");
-        let last_pos = (circle.cx, circle.cy);
-        comp.send(Finger::Id("ball"), BallMsg::PosUpdate(last_pos.0, last_pos.1))
+        comp.send(Finger::Id("ball"), BallMsg::PosUpdate)
             .expect("Invalid finger");
 
         let (dims, hdpi) = (app.dimensions(), app.window().hidpi_factor());
