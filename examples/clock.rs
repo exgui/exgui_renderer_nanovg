@@ -3,7 +3,7 @@ use exgui_renderer_nanovg::NanovgRenderer;
 use exgui_controller_glutin::{App, AppState, glutin};
 use exgui::{
     egml, Component, ChangeView, Node, Comp, Color, Gradient, AlignHor::*, AlignVer::*,
-    PathCommand::*, Transform
+    PathCommand::*, Transform, SystemMessage
 };
 use chrono::{DateTime, Local, Timelike, Datelike};
 
@@ -46,6 +46,15 @@ impl Component for Clock {
         let mut clock = Clock::default();
         clock.size_recalc(width, height);
         clock
+    }
+
+    #[allow(irrefutable_let_patterns)]
+    fn system_update(&mut self, msg: SystemMessage) -> Option<Self::Message> {
+        if let SystemMessage::FrameChange = msg {
+            Some(Msg::Tick)
+        } else {
+            None
+        }
     }
 
     fn update(&mut self, msg: Self::Message) -> ChangeView {
@@ -290,7 +299,6 @@ fn main() {
 
     app.run_proc(&mut comp, |app, clock| {
         clock.send_self(Msg::ResizeWindow(app.dimensions()));
-        clock.send_self(Msg::Tick);
 
         let (dims, hdpi) = (app.dimensions(), app.window().hidpi_factor());
         app.renderer_mut().set_dimensions(dims, hdpi);

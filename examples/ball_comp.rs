@@ -1,8 +1,8 @@
 use exgui_renderer_nanovg::NanovgRenderer;
 use exgui_controller_glutin::{App, AppState, glutin};
 use exgui::{
-    egml, Component, Shapeable, ChangeView, Node, Comp, Finger, Color,
-    Pct, Real
+    egml, Component, Shapeable, ChangeView, Node, Comp, Color,
+    Pct, Real, SystemMessage
 };
 
 struct Model {
@@ -105,6 +105,15 @@ impl Component for Ball {
         }
     }
 
+    #[allow(irrefutable_let_patterns)]
+    fn system_update(&mut self, msg: SystemMessage) -> Option<Self::Message> {
+        if let SystemMessage::FrameChange = msg {
+            Some(BallMsg::PosUpdate)
+        } else {
+            None
+        }
+    }
+
     fn update_with_view(&mut self, view: Option<&Node<Self>>, msg: Self::Message) -> ChangeView {
         match msg {
             BallMsg::Toggle => {
@@ -174,10 +183,7 @@ fn main() {
     let mut comp = Comp::new::<Model>(());
     comp.resolve(None);
 
-    app.run_proc(&mut comp, |app, comp| {
-        comp.send(Finger::Id("ball"), BallMsg::PosUpdate)
-            .expect("Invalid finger");
-
+    app.run_proc(&mut comp, |app, _comp| {
         let (dims, hdpi) = (app.dimensions(), app.window().hidpi_factor());
         app.renderer_mut().set_dimensions(dims, hdpi);
 
